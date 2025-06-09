@@ -1,0 +1,23 @@
+{
+  "name": "sales-territory-management",
+  "version": "1.0.0",
+  "description": "영업 담당 상권 조회 시스템 - 백엔드 API",
+  "main": "server.js",
+  "scripts": {
+    "start": "echo 'This project runs on Vercel Serverless Functions'",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "@octokit/rest": "^20.0.2"
+  },
+  "keywords": [
+    "sales",
+    "territory",
+    "management",
+    "api"
+  ],
+  "author": "Sales Territory Management Team",
+  "license": "MIT"
+}

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영업 담당 상권 조회</title>
+    <meta name="description" content="영업 담당자별 상권 지역을 지도에서 시각화하여 확인할 수 있는 서비스">
+    
+    <!-- 추가된 메타 태그들 -->
+    <meta name="keywords" content="영업, 상권, 지도, 담당자, 거래처, 분석">
+    <meta name="author" content="Sales Territory Management System">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#667eea">
+    
+    <!-- PWA 지원 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="영업상권조회">
+    
+    <!-- 아이콘들 -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- 카카오맵 API -->
+    <!-- 실제 운영시에는 환경변수나 별도 설정 파일에서 API 키를 관리하세요 -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=fc1c788a2f80cc872b65175456f41759"></script>
+    <!-- TopoJSON 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+</head>
+<body data-theme="light">
+    <!-- 스킵 네비게이션 추가 (접근성) -->
+    <a href="#main-content" class="sr-only focus-visible">메인 콘텐츠로 건너뛰기</a>
+    
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🏢 영업 담당 상권 조회</h1>
+                <p class="header-subtitle">영업 담당자별 상권 지역을 지도에서 확인하세요</p>
+            </div>
+        </header>
+
+        <!-- 필터 패널 -->
+        <aside class="filter-panel" role="complementary" aria-label="필터 옵션">
+            <div class="filter-section">
+                <h3>📊 필터 옵션</h3>
+                
+                <div class="filter-group">
+                    <label for="branchOfficeSelect">지사 선택</label>
+                    <select id="branchOfficeSelect" aria-label="지사 선택" autocomplete="off">
+                        <option value="">- 선택 -</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="branchSelect">지점 선택</label>
+                    <select id="branchSelect" aria-label="지점 선택" autocomplete="off">
+                        <option value="">- 선택 -</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="salesPersonDropdown">담당 영업사원 (다중선택)</label>
+                    <div class="custom-dropdown" id="salesPersonDropdown">
+                        <button type="button" class="dropdown-button" aria-expanded="false" aria-haspopup="true">
+                            <span>- 선택 -</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </button>
+                        <div class="dropdown-content" role="listbox" aria-label="담당자 선택">
+                            <!-- 체크박스 항목들이 JavaScript로 동적 생성됩니다 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button id="applyFilterBtn" class="btn btn-primary ripple-effect" type="button">
+                        📋 필터 적용
+                    </button>
+                    <button id="resetFilterBtn" class="btn btn-secondary" type="button">
+                        🔄 초기화
+                    </button>
+                </div>
+                
+                <div class="filter-actions" style="margin-top: 10px;">
+                    <button id="restoreFilterBtn" class="btn btn-outline" type="button" style="width: 100%; font-size: 12px;">
+                        💾 이전 설정 복원
+                    </button>
+                </div>
+            </div>
+
+            <!-- 수정된 통계 정보 - 라벨 개선 및 필터 상태 추가 -->
+            <div class="stats-section">
+                <h3>📈 현재 선택 통계</h3>
+                <div class="stats-grid">
+                    <div class="stat-item card-hover">
+                        <span class="stat-label">선택된 지점</span>
+                        <span class="stat-value" id="totalBranches">0</span>
+                    </div>
+                    <div class="stat-item card-hover">
+                        <span class="stat-label">선택된 담당자</span>
+                        <span class="stat-value" id="totalSalespeople">0</span>
+                    </div>
+                    <div class="stat-item card-hover">
+                        <span class="stat-label">선택된 거래처</span>
+                        <span class="stat-value" id="totalRegions">0</span>
+                    </div>
+                </div>
+                
+                <!-- 추가된 상세 통계 정보 -->
+                <div class="stats-detail" id="statsDetail">
+                    <div class="stats-detail-item">
+                        <span>📊 필터 상태: </span>
+                        <span id="filterStatus">전체 데이터</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 범례 -->
+            <div class="legend-section">
+                <h3>🎨 담당자별 색상</h3>
+                <div id="colorLegend" class="color-legend custom-scrollbar">
+                    <p class="legend-note">필터 적용 후 담당자별 색상이 표시됩니다.</p>
+                </div>
+            </div>
+
+            <!-- RTM 채널별 마커 범례 -->
+            <div class="legend-section">
+                <h3>📍 마커 범례</h3>
+                <div class="marker-legend">
+                    <div class="marker-legend-item">
+                        <div class="marker-icon marker-square">■</div>
+                        <span>업소 (네모)</span>
+                    </div>
+                    <div class="marker-legend-item">
+                        <div class="marker-icon marker-circle">●</div>
+                        <span>매장 (동그라미)</span>
+                    </div>
+                    <div class="marker-legend-item">
+                        <div class="marker-icon marker-diamond">♦</div>
+                        <span>기타 (다이아몬드)</span>
+                    </div>
+                </div>
+                <p class="legend-note">* 마커 색상은 담당자별로 구분됩니다</p>
+            </div>
+        </aside>
+
+        <!-- 지도 컨테이너 -->
+        <main class="map-section" id="main-content" role="main">
+            <div class="map-header">
+                <h3>🗺️ 영업구역 지도</h3>
+                <div class="map-controls">
+                    <!-- 담당자 수정 기록 버튼 (JavaScript에서 동적 추가) -->
+                    <button id="editHistoryBtn" class="btn btn-outline" type="button" title="담당자 수정 기록 조회" style="display: none;">
+                        📋 수정기록
+                    </button>
+                    
+                    <button id="fitBoundsBtn" class="btn btn-outline" type="button" title="선택된 지역 전체보기">
+                        🔍 전체보기
+                    </button>
+                    <button id="toggleLayerBtn" class="btn btn-outline" type="button" title="구역 표시 토글">
+                        👁️ 구역표시 ON
+                    </button>
+                </div>
+            </div>
+            
+            <div id="map" class="map-container" role="application" aria-label="영업구역 지도"></div>
+        </main>
+
+        <!-- 상세 정보 패널 -->
+        <div class="detail-panel" id="detailPanel" role="dialog" aria-labelledby="detailTitle" aria-hidden="true">
+            <div class="detail-header">
+                <h3 id="detailTitle">📍 선택된 정보</h3>
+                <button id="closeDetailBtn" class="btn-close" type="button" aria-label="상세 정보 패널 닫기">&times;</button>
+            </div>
+            <div class="detail-content custom-scrollbar" id="detailContent">
+                <p class="detail-placeholder">지도에서 마커나 지역을 클릭하세요.</p>
+            </div>
+        </div>
+
+        <!-- 로딩 오버레이 -->
+        <div id="loadingOverlay" class="loading-overlay" aria-hidden="false">
+            <div class="loading-spinner" aria-hidden="true"></div>
+            <p>데이터를 불러오는 중...</p>
+        </div>
+
+        <!-- 에러 메시지 -->
+        <div id="errorMessage" class="error-message hidden" role="alert">
+            <div class="error-content">
+                <h3>⚠️ 오류 발생</h3>
+                <p id="errorText">데이터를 불러오는 중 오류가 발생했습니다.</p>
+                <button id="retryBtn" class="btn btn-primary" type="button">다시 시도</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 담당자 수정 모달은 JavaScript에서 동적으로 생성됩니다 -->
+    <!-- 수정 기록 모달도 JavaScript에서 동적으로 생성됩니다 -->
+
+    <!-- PWA 및 오프라인 지원 스크립트 -->
+    <script>
+        // PWA 등록
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // 오프라인/온라인 감지
+        window.addEventListener('online', function() {
+            if (typeof notificationManager !== 'undefined') {
+                notificationManager.success('인터넷에 다시 연결되었습니다.');
+            }
+        });
+
+        window.addEventListener('offline', function() {
+            if (typeof notificationManager !== 'undefined') {
+                notificationManager.warning('오프라인 모드입니다. 일부 기능이 제한될 수 있습니다.');
+            }
+        });
+
+        // 전역 에러 핸들러
+        window.addEventListener('error', function(e) {
+            console.error('전역 에러:', e.error);
+            if (typeof notificationManager !== 'undefined') {
+                notificationManager.error('애플리케이션 오류가 발생했습니다.');
+            }
+        });
+
+        // 브라우저 호환성 체크
+        function checkBrowserCompatibility() {
+            const requiredFeatures = [
+                'Promise',
+                'fetch',
+                'Map',
+                'Set',
+                'Array.from'
+            ];
+            
+            const missingFeatures = requiredFeatures.filter(feature => {
+                try {
+                    return !window[feature] && !eval(feature);
+                } catch (e) {
+                    return true;
+                }
+            });
+            
+            if (missingFeatures.length > 0) {
+                alert('이 브라우저는 지원되지 않습니다. 최신 브라우저를 사용해주세요.');
+                return false;
+            }
+            return true;
+        }
+
+        // 초기 호환성 체크
+        if (!checkBrowserCompatibility()) {
+            document.body.innerHTML = `
+                <div style="
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    height: 100vh; 
+                    background: #f8f9fa; 
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    padding: 20px;
+                ">
+                    <div style="
+                        background: white; 
+                        padding: 40px; 
+                        border-radius: 10px; 
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                        max-width: 500px;
+                    ">
+                        <h2 style="color: #e74c3c; margin-bottom: 20px;">⚠️ 브라우저 호환성 문제</h2>
+                        <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+                            현재 브라우저는 이 애플리케이션의 일부 기능을 지원하지 않습니다.
+                        </p>
+                        <p style="color: #333; font-weight: 600;">권장 브라우저:</p>
+                        <ul style="color: #666; text-align: left; margin: 15px 0;">
+                            <li>Chrome 60 이상</li>
+                            <li>Firefox 55 이상</li>
+                            <li>Safari 11 이상</li>
+                            <li>Edge 79 이상</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 성능 모니터링
+        if ('performance' in window) {
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    const perfData = performance.getEntriesByType('navigation')[0];
+                    if (perfData) {
+                        console.log(`📊 페이지 로드 성능:
+                            - DNS 조회: ${(perfData.domainLookupEnd - perfData.domainLookupStart).toFixed(2)}ms
+                            - 서버 연결: ${(perfData.connectEnd - perfData.connectStart).toFixed(2)}ms
+                            - 페이지 로드: ${(perfData.loadEventEnd - perfData.navigationStart).toFixed(2)}ms
+                            - DOM 준비: ${(perfData.domContentLoadedEventEnd - perfData.navigationStart).toFixed(2)}ms
+                        `);
+                    }
+                }, 0);
+            });
+        }
+
+        // 메모리 사용량 모니터링 (Chrome)
+        if ('memory' in performance) {
+            setInterval(function() {
+                const memory = performance.memory;
+                if (memory.usedJSHeapSize > memory.jsHeapSizeLimit * 0.9) {
+                    console.warn('⚠️ 메모리 사용량이 높습니다:', {
+                        used: Math.round(memory.usedJSHeapSize / 1048576) + 'MB',
+                        total: Math.round(memory.totalJSHeapSize / 1048576) + 'MB',
+                        limit: Math.round(memory.jsHeapSizeLimit / 1048576) + 'MB'
+                    });
+                }
+            }, 30000); // 30초마다 체크
+        }
+
+        // 키보드 단축키 전역 등록
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + / : 단축키 도움말
+            if (e.ctrlKey && e.key === '/') {
+                e.preventDefault();
+                showKeyboardShortcuts();
+            }
+            
+            // F1 : 도움말
+            if (e.key === 'F1') {
+                e.preventDefault();
+                showHelp();
+            }
+            
+            // Ctrl + D : 디버그 정보
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                if (typeof window.fullDebug === 'function') {
+                    window.fullDebug();
+                }
+            }
+        });
+
+        function showKeyboardShortcuts() {
+            if (typeof notificationManager !== 'undefined') {
+                notificationManager.info(`
+                    <strong>⌨️ 키보드 단축키</strong><br>
+                    Ctrl + F: 검색 포커스<br>
+                    Ctrl + R: 필터 초기화<br>
+                    Ctrl + E: 데이터 내보내기<br>
+                    F1: 도움말<br>
+                    ESC: 모달 닫기
+                `, 8000);
+            }
+        }
+
+        function showHelp() {
+            if (typeof notificationManager !== 'undefined') {
+                notificationManager.info(`
+                    <strong>🎯 사용법</strong><br>
+                    1. 필터를 설정하여 원하는 영업 구역을 선택<br>
+                    2. 지도에서 마커를 클릭하면 상세 정보 확인<br>
+                    3. '✏️ 담당자 수정' 버튼으로 담당자 정보 수정<br>
+                    4. '📋 수정기록' 버튼으로 변경 이력 확인
+                `, 10000);
+            }
+        }
+
+        // 사용자 경험 개선을 위한 로딩 인디케이터 개선
+        let loadingMessages = [
+            '데이터를 불러오는 중...',
+            '영업 정보를 처리하는 중...',
+            '지도를 준비하는 중...',
+            '거래처 정보를 매칭하는 중...',
+            '담당자 정보를 정리하는 중...'
+        ];
+        
+        let currentMessageIndex = 0;
+        let messageInterval;
+
+        function updateLoadingMessage() {
+            const loadingText = document.querySelector('#loadingOverlay p');
+            if (loadingText && !document.getElementById('loadingOverlay').classList.contains('hidden')) {
+                loadingText.textContent = loadingMessages[currentMessageIndex];
+                currentMessageIndex = (currentMessageIndex + 1) % loadingMessages.length;
+            }
+        }
+
+        // 로딩 시작시 메시지 순환 시작
+        function startLoadingMessages() {
+            if (messageInterval) clearInterval(messageInterval);
+            messageInterval = setInterval(updateLoadingMessage, 1500);
+        }
+
+        // 로딩 종료시 메시지 순환 정지
+        function stopLoadingMessages() {
+            if (messageInterval) {
+                clearInterval(messageInterval);
+                messageInterval = null;
+            }
+        }
+
+        // 페이지 가시성 API 활용
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('페이지가 숨겨졌습니다. 일부 기능이 일시 중지됩니다.');
+            } else {
+                console.log('페이지가 다시 표시되었습니다. 기능이 재개됩니다.');
+                // 필요시 데이터 새로고침
+                if (typeof updateStatistics === 'function') {
+                    updateStatistics();
+                }
+            }
+        });
+
+        // 터치 디바이스 감지 및 최적화
+        function isTouchDevice() {
+            return (('ontouchstart' in window) ||
+                   (navigator.maxTouchPoints > 0) ||
+                   (navigator.msMaxTouchPoints > 0));
+        }
+
+        if (isTouchDevice()) {
+            document.body.classList.add('touch-device');
+            console.log('터치 디바이스가 감지되었습니다. 터치 최적화를 적용합니다.');
+        }
+
+        // 네트워크 상태 감지
+        if ('connection' in navigator) {
+            function updateConnectionStatus() {
+                const connection = navigator.connection;
+                console.log(`네트워크 상태: ${connection.effectiveType}, 다운링크: ${connection.downlink}Mbps`);
+                
+                if (connection.saveData) {
+                    console.log('데이터 절약 모드가 활성화되어 있습니다.');
+                    document.body.classList.add('save-data-mode');
+                }
+            }
+            
+            navigator.connection.addEventListener('change', updateConnectionStatus);
+            updateConnectionStatus();
+        }
+
+        // 배터리 상태 감지 (실험적 기능)
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(function(battery) {
+                function updateBatteryStatus() {
+                    if (battery.level < 0.2 && !battery.charging) {
+                        console.log('배터리가 부족합니다. 성능 최적화 모드를 활성화합니다.');
+                        document.body.classList.add('low-battery-mode');
+                    } else {
+                        document.body.classList.remove('low-battery-mode');
+                    }
+                }
+                
+                battery.addEventListener('levelchange', updateBatteryStatus);
+                battery.addEventListener('chargingchange', updateBatteryStatus);
+                updateBatteryStatus();
+            });
+        }
+
+        // 접근성 개선
+        function announceToScreenReader(message) {
+            const announcement = document.createElement('div');
+            announcement.setAttribute('aria-live', 'polite');
+            announcement.setAttribute('aria-atomic', 'true');
+            announcement.className = 'sr-only';
+            announcement.textContent = message;
+            
+            document.body.appendChild(announcement);
+            
+            setTimeout(() => {
+                document.body.removeChild(announcement);
+            }, 1000);
+        }
+
+        // 전역 함수로 노출
+        window.announceToScreenReader = announceToScreenReader;
+        window.startLoadingMessages = startLoadingMessages;
+        window.stopLoadingMessages = stopLoadingMessages;
+
+        // 개발자 모드 감지
+        let devtools = false;
+        setInterval(function() {
+            if (window.outerHeight - window.innerHeight > 100 || window.outerWidth - window.innerWidth > 100) {
+                if (!devtools) {
+                    devtools = true;
+                    console.log(`
+🔧 개발자 도구가 열렸습니다!
+
+📋 유용한 디버깅 명령어:
+- window.fullDebug() : 전체 시스템 상태 확인
+- window.checkStats() : 통계 데이터 검증
+- window.checkDataQuality() : 데이터 품질 분석
+- window.checkFilters() : 필터 상태 확인
+
+🎯 담당자 수정 기능:
+- salespersonEditManager.getEditHistory() : 수정 기록 조회
+- salespersonEditManager.exportEditHistory() : 수정 기록 내보내기
+
+💡 성능 정보는 자동으로 콘솔에 출력됩니다.
+                    `);
+                }
+            } else {
+                devtools = false;
+            }
+        }, 500);
+
+        // 사용자 피드백 수집
+        function collectUserFeedback() {
+            const usage = {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                },
+                performance: performance.timing ? {
+                    loadTime: performance.timing.loadEventEnd - performance.timing.navigationStart,
+                    domReady: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart
+                } : null
+            };
+            
+            // 로컬 스토리지에 사용 통계 저장
+            try {
+                const existingUsage = JSON.parse(localStorage.getItem('usageStats') || '[]');
+                existingUsage.push(usage);
+                
+                // 최근 10개 세션만 보관
+                if (existingUsage.length > 10) {
+                    existingUsage.splice(0, existingUsage.length - 10);
+                }
+                
+                localStorage.setItem('usageStats', JSON.stringify(existingUsage));
+            } catch (error) {
+                console.warn('사용 통계 저장 실패:', error);
+            }
+        }
+
+        // 페이지 언로드시 피드백 수집
+        window.addEventListener('beforeunload', collectUserFeedback);
+
+        // 초기 피드백 수집
+        window.addEventListener('load', function() {
+            setTimeout(collectUserFeedback, 5000);
+        });
+    </script>
+
+    <!-- 메인 JavaScript 파일 -->
+    <script src="app.js"></script>
+    
+    <!-- 완료 메시지 -->
+    <script>
+        // 모든 스크립트 로드 완료 후 실행
+        window.addEventListener('load', function() {
+            console.log(`
+🎉 영업 담당 상권 조회 시스템이 완전히 로드되었습니다!
+
+✨ 시스템 정보:
+- 버전: v2.0 (담당자 수정 기능 포함)
+- 로드 시간: ${performance.now().toFixed(2)}ms
+- 브라우저: ${navigator.userAgent.split(' ').pop()}
+- 화면 크기: ${window.innerWidth}x${window.innerHeight}
+
+🎯 주요 기능:
+📊 기본 기능:
+  - 영업 구역 지도 표시
+  - 거래처 마커 표시 (RTM 채널별 모양)
+  - 담당자별 색상 구분
+  - 다중 필터링 (지사, 지점, 담당자)
+  - 실시간 통계
+  - 행정구역 경계 표시
+
+✏️ 담당자 수정 기능:
+  - 마커 클릭 시 담당자 수정 모달
+  - 실시간 유효성 검증
+  - 자동완성 및 자동 매칭
+  - 수정 기록 관리
+  - 변경 사항 미리보기
+  - CSV 수정 기록 내보내기
+
+⌨️ 키보드 단축키:
+  - Ctrl + /  : 단축키 도움말
+  - Ctrl + F  : 검색 포커스
+  - Ctrl + R  : 필터 초기화
+  - Ctrl + E  : 데이터 내보내기
+  - Ctrl + D  : 디버그 정보
+  - F1       : 도움말
+  - ESC      : 모달 닫기
+
+🔧 디버깅:
+  - window.fullDebug() : 전체 상태 확인
+  - 개발자 도구를 열면 추가 정보 표시
+
+💡 사용법:
+1. 필터 설정 후 '📋 필터 적용' 클릭
+2. 지도에서 거래처 마커 클릭
+3. '✏️ 담당자 수정' 버튼으로 정보 수정
+4. '📋 수정기록' 버튼으로 변경 이력 확인
+
+🚀 시스템이 준비되었습니다!
+            `);
+            
+            // 접근성 안내
+            announceToScreenReader('영업 담당 상권 조회 시스템이 준비되었습니다. 필터를 설정하여 영업 구역을 조회할 수 있습니다.');
+        });
+    </script>
+</body>
+</html>
