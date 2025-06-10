@@ -1,33 +1,20 @@
 {
   "name": "sales-territory-management",
-  "version": "1.0.0",
-  "description": "영업 담당 상권 조회 시스템 - Express.js 서버",
-  "main": "server.js",
+  "version": "2.0.0",
+  "description": "영업 담당 상권 조회 시스템 - Netlify 정적 사이트",
+  "main": "index.html",
   "scripts": {
-    "start": "echo 'This project runs on Netlify Functions'",
-    "build": "echo 'Build complete'",
     "dev": "netlify dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "@octokit/rest": "^20.0.2",
-    "compression": "^1.7.4"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
-  },
-  "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
+    "build": "echo 'Static site - no build required'",
+    "deploy": "netlify deploy --prod"
   },
   "keywords": [
     "sales",
     "territory",
     "management",
-    "express",
-    "nodejs"
+    "netlify",
+    "static-site",
+    "kakao-maps"
   ],
   "author": "Sales Territory Management Team",
   "license": "MIT"
