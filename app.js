@@ -1829,12 +1829,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    initializeElements();
-    initializeEventListeners();
-    initializeMap();
-    
-    // 알림 관리자 초기화
-    notificationManager = new NotificationManager();
+    // 이 코드는 새로운 초기화 구조로 대체됨
     
     // 초기 로드시에는 사용자 설정을 로드하지 않음 (깨끗한 상태로 시작)
     // loadUserPreferences();
@@ -3965,6 +3960,9 @@ function initializeApp() {
 async function startApplication() {
     try {
         console.log('애플리케이션 시작');
+        
+        // 알림 관리자 초기화 (가장 먼저)
+        notificationManager = new NotificationManager();
         
         // DOM 요소 초기화
         elements.loadingOverlay = document.getElementById('loadingOverlay');
