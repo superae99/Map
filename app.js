@@ -1543,19 +1543,33 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                         dropdown.classList.remove('active');
                     }
                     
-                    // 담당 사번 자동 입력
+                    // 담당 사번 자동 입력 - 개선된 로직
                     if (salesNumber) {
                         const salesNumberInput = document.getElementById('newSalesNumber');
-                        if (salesNumberInput && !salesNumberInput.value.trim()) {
-                            salesNumberInput.value = salesNumber;
-                            console.log('담당 사번 자동 입력:', salesNumber);
+                        if (salesNumberInput) {
+                            // 현재 값이 비어있거나 다른 경우에만 업데이트
+                            if (!salesNumberInput.value.trim() || salesNumberInput.value !== salesNumber) {
+                                salesNumberInput.value = salesNumber;
+                                console.log('담당 사번 자동 입력:', salesNumber);
+                                
+                                // 입력 이벤트 발생시켜서 validation 트리거
+                                salesNumberInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
                         }
                     }
                     
-                    // 미리보기 업데이트 및 저장 버튼 활성화
-                    if (window.salespersonEditManager) {
-                        window.salespersonEditManager.updatePreview();
-                        window.salespersonEditManager.updateValidation();
+                    // 미리보기 업데이트 및 저장 버튼 활성화 - 강제 실행
+                    console.log('미리보기 및 검증 업데이트 시작');
+                    try {
+                        if (window.salespersonEditManager) {
+                            window.salespersonEditManager.updatePreview();
+                            window.salespersonEditManager.updateValidation();
+                            console.log('미리보기 및 검증 업데이트 완료');
+                        } else {
+                            console.warn('salespersonEditManager를 찾을 수 없음');
+                        }
+                    } catch (error) {
+                        console.error('미리보기 업데이트 오류:', error);
                     }
                 });
 
@@ -1770,17 +1784,29 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
 
     // 미리보기 업데이트
     updatePreview() {
-        const newSalesNumber = document.getElementById('newSalesNumber').value.trim();
+        console.log('updatePreview 호출됨');
+        
+        const newSalesNumber = document.getElementById('newSalesNumber')?.value?.trim() || '';
         const newSalesperson = this.getSelectedSalesperson();
         
         const previewSection = document.getElementById('previewSection');
-        if (!previewSection) return;
+        console.log('미리보기 데이터:', {
+            newSalesNumber,
+            newSalesperson,
+            previewSectionExists: !!previewSection
+        });
+        
+        if (!previewSection) {
+            console.warn('previewSection을 찾을 수 없음');
+            return;
+        }
 
         if (newSalesNumber || newSalesperson) {
             const currentSalesNumber = this.currentEditingItem['담당 사번'];
             const currentSalesperson = this.currentEditingItem['담당 영업사원'];
             
             let previewHTML = '<div class="preview-content">';
+            let hasChanges = false;
             
             if (newSalesNumber && newSalesNumber !== String(currentSalesNumber)) {
                 previewHTML += `
@@ -1793,6 +1819,7 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                         </span>
                     </div>
                 `;
+                hasChanges = true;
             }
             
             if (newSalesperson && newSalesperson !== currentSalesperson) {
@@ -1806,44 +1833,70 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                         </span>
                     </div>
                 `;
+                hasChanges = true;
             }
             
             previewHTML += '</div>';
             
-            if (previewHTML.includes('preview-item')) {
+            if (hasChanges) {
                 previewSection.innerHTML = previewHTML;
                 previewSection.style.display = 'block';
+                console.log('미리보기 표시됨');
             } else {
                 previewSection.style.display = 'none';
+                console.log('변경사항 없어서 미리보기 숨김');
             }
         } else {
             previewSection.style.display = 'none';
+            console.log('입력값 없어서 미리보기 숨김');
         }
     }
 
     // 유효성 검사 및 저장 버튼 활성화
     updateValidation() {
-        const newSalesNumber = document.getElementById('newSalesNumber').value.trim();
+        console.log('updateValidation 호출됨');
+        
+        const newSalesNumber = document.getElementById('newSalesNumber')?.value?.trim() || '';
         const newSalesperson = this.getSelectedSalesperson();
         const saveBtn = document.getElementById('saveEditBtn');
         
-        if (!saveBtn) return;
+        console.log('검증 데이터:', {
+            newSalesNumber,
+            newSalesperson,
+            currentSalesNumber: this.currentEditingItem['담당 사번'],
+            currentSalesperson: this.currentEditingItem['담당 영업사원'],
+            saveBtnExists: !!saveBtn
+        });
+        
+        if (!saveBtn) {
+            console.warn('저장 버튼을 찾을 수 없음');
+            return;
+        }
 
         // 담당 사번 또는 담당 영업사원 중 하나라도 변경되었으면 활성화
         const currentSalesNumber = String(this.currentEditingItem['담당 사번'] || '');
         const currentSalesperson = this.currentEditingItem['담당 영업사원'] || '';
         
-        const hasChanges = (newSalesNumber && newSalesNumber !== currentSalesNumber) || 
-                          (newSalesperson && newSalesperson !== currentSalesperson);
+        const salesNumberChanged = newSalesNumber && newSalesNumber !== currentSalesNumber;
+        const salespersonChanged = newSalesperson && newSalesperson !== currentSalesperson;
+        const hasChanges = salesNumberChanged || salespersonChanged;
+        
+        console.log('변경 감지:', {
+            salesNumberChanged,
+            salespersonChanged,
+            hasChanges
+        });
         
         if (hasChanges) {
             saveBtn.disabled = false;
             saveBtn.classList.add('btn-ready');
             saveBtn.textContent = '저장';
+            console.log('저장 버튼 활성화');
         } else {
             saveBtn.disabled = true;
             saveBtn.classList.remove('btn-ready');
             saveBtn.textContent = '변경사항 없음';
+            console.log('저장 버튼 비활성화');
         }
     }
 
