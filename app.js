@@ -7,7 +7,7 @@
 const APP_CONFIG = {
     DATA_PATHS: {
         SALES_DATA: '/api/data',
-        TOPO_DATA: '/api/data',
+        TOPO_DATA: '/api/topojson',
         ADDRESS_DATA: '/api/data'
     },
     MAP_CONFIG: {
@@ -2125,11 +2125,6 @@ async function loadAddressData() {
 
 async function loadTopoJsonData() {
     try {
-        console.log('TopoJSON 데이터 로드 건너뛰기 - 구역 표시 비활성화');
-        return null; // TopoJSON 데이터 없이 진행
-        
-        // 향후 TopoJSON 파일이 필요한 경우를 위한 코드 (주석 처리)
-        /*
         const topoData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.TOPO_DATA);
         
         if (!topoData || !topoData.objects || typeof topoData.objects !== 'object') {
@@ -2158,11 +2153,12 @@ async function loadTopoJsonData() {
         
         console.log(`TopoJSON 데이터 로드 및 변환 완료: ${appData.geoData.features.length}개 지역`);
         console.log(`사용된 TopoJSON 레이어: ${layerKey}`);
-        */
         
     } catch (error) {
-        console.error('TopoJSON 데이터 로드 건너뛰기:', error.message);
-        return null; // 에러 발생시에도 null 반환하여 계속 진행
+        console.error('TopoJSON 데이터 로드 오류:', error);
+        // TopoJSON 로드 실패시에도 애플리케이션은 계속 진행
+        console.warn('TopoJSON 로드 실패 - 구역 표시 없이 진행');
+        appData.geoData = null;
     }
 }
 
