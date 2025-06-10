@@ -55,40 +55,34 @@ exports.handler = async (event, context) => {
         if (!jsonData) {
             try {
                 console.log('로컬 파일에서 데이터 로드...');
-                // Netlify에서는 빌드 시 파일 위치가 다를 수 있음
-                let dataPath = path.join(__dirname, '../../public/data.json');
-                console.log('시도하는 파일 경로:', dataPath);
+                // Netlify Functions에서는 데이터 파일을 함수 디렉토리에 포함시켜야 함
+                // 또는 빌드 시 복사되는 경로를 사용
+                const possiblePaths = [
+                    path.join(__dirname, './juso_output_file.json'), // 함수 디렉토리에 있는 파일
+                    path.join(__dirname, '../../public/data.json'), // public 디렉토리의 data.json
+                    path.join(__dirname, '../../public/data/juso_output_file.json'), // public/data 디렉토리
+                    '/opt/build/repo/public/data/juso_output_file.json', // Netlify 빌드 경로
+                    '/opt/build/repo/public/data.json'
+                ];
                 
-                try {
-                    const data = await fs.readFile(dataPath, 'utf8');
-                    jsonData = JSON.parse(data);
-                } catch (firstError) {
-                    console.log('첫 번째 경로 실패, 다른 경로 시도:', firstError.message);
-                    // 대체 경로들 시도
-                    const alternatePaths = [
-                        path.join(__dirname, '../../../public/data.json'),
-                        path.join(__dirname, '../../../../public/data.json'),
-                        '/opt/build/repo/public/data.json',
-                        './public/data.json'
-                    ];
-                    
-                    let loaded = false;
-                    for (const altPath of alternatePaths) {
-                        try {
-                            console.log('대체 경로 시도:', altPath);
-                            const data = await fs.readFile(altPath, 'utf8');
-                            jsonData = JSON.parse(data);
-                            dataPath = altPath;
-                            loaded = true;
-                            break;
-                        } catch (altError) {
-                            console.log('대체 경로 실패:', altPath, altError.message);
-                        }
+                let loaded = false;
+                let dataPath = '';
+                
+                for (const tryPath of possiblePaths) {
+                    try {
+                        console.log('시도하는 파일 경로:', tryPath);
+                        const data = await fs.readFile(tryPath, 'utf8');
+                        jsonData = JSON.parse(data);
+                        dataPath = tryPath;
+                        loaded = true;
+                        break;
+                    } catch (error) {
+                        console.log('경로 실패:', tryPath, error.message);
                     }
-                    
-                    if (!loaded) {
-                        throw firstError;
-                    }
+                }
+                
+                if (!loaded) {
+                    throw new Error('모든 경로에서 데이터 파일을 찾을 수 없습니다');
                 }
                 
                 console.log(`로컬 파일에서 ${jsonData.length}개 데이터 로드 완료 (경로: ${dataPath})`);
