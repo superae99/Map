@@ -1947,7 +1947,25 @@ async function loadSalesData() {
 
 async function loadAddressData() {
     try {
-        appData.addressData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
+        // 먼저 API 엔드포인트에서 최신 데이터를 가져오려고 시도
+        try {
+            const response = await fetch('/api/data');
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data) {
+                    appData.addressData = result.data;
+                    console.log('API에서 최신 데이터 로드 성공');
+                } else {
+                    throw new Error('API 응답이 유효하지 않음');
+                }
+            } else {
+                throw new Error(`API 응답 오류: ${response.status}`);
+            }
+        } catch (apiError) {
+            console.warn('API에서 데이터 로드 실패, 정적 파일로 대체:', apiError.message);
+            // API 실패 시 정적 파일에서 로드
+            appData.addressData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
+        }
         
         const schema = {
             '담당 사번': { required: true },
