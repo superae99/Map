@@ -1,4 +1,7 @@
 // TopoJSON data endpoint
+const fs = require('fs').promises;
+const path = require('path');
+
 exports.handler = async (event, context) => {
     const { httpMethod: method } = event;
     
@@ -26,41 +29,12 @@ exports.handler = async (event, context) => {
     }
     
     try {
-        // 기본 TopoJSON 데이터 (서울시 구경계 샘플)
-        const topoJsonData = {
-            "type": "Topology",
-            "objects": {
-                "seoul_districts": {
-                    "type": "GeometryCollection",
-                    "geometries": [
-                        {
-                            "type": "Polygon",
-                            "properties": {
-                                "name": "강남구",
-                                "code": "11680"
-                            },
-                            "arcs": [[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]]]
-                        },
-                        {
-                            "type": "Polygon",
-                            "properties": {
-                                "name": "강동구",
-                                "code": "11740"
-                            },
-                            "arcs": [[[16, 17, 18, 19, 20, 21, 22, 23, 24, 25]]]
-                        }
-                    ]
-                }
-            },
-            "arcs": [
-                // 강남구 경계 좌표 (간단한 사각형)
-                [[127.0495, 37.5172], [127.0495, 37.4979], [127.0641, 37.4979], [127.0641, 37.5172], [127.0495, 37.5172]],
-                // 강동구 경계 좌표 (간단한 사각형)
-                [[127.1236, 37.5301], [127.1236, 37.5134], [127.1469, 37.5134], [127.1469, 37.5301], [127.1236, 37.5301]]
-            ]
-        };
+        // TOPO_DATA: HangJeongDong_ver20250401.json 로드
+        const dataPath = path.join(__dirname, 'HangJeongDong_ver20250401.json');
+        const data = await fs.readFile(dataPath, 'utf8');
+        const jsonData = JSON.parse(data);
         
-        console.log('기본 TopoJSON 데이터 반환');
+        console.log('TopoJSON 데이터 로드 완료');
         
         return {
             statusCode: 200,
@@ -68,7 +42,7 @@ exports.handler = async (event, context) => {
                 ...corsHeaders,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(topoJsonData)
+            body: JSON.stringify(jsonData)
         };
     } catch (error) {
         console.error('TopoJSON 데이터 오류:', error);

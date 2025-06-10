@@ -29,7 +29,7 @@ exports.handler = async (event, context) => {
     }
     
     try {
-        // Functions 폴더 내 실제 데이터 파일 로드
+        // ADDRESS_DATA: output_address.json 로드
         const dataPath = path.join(__dirname, 'output_address.json');
         const data = await fs.readFile(dataPath, 'utf8');
         const jsonData = JSON.parse(data);
