@@ -3935,3 +3935,111 @@ console.log(`
 🔧 디버깅:
 window.fullDebug() 실행으로 전체 상태 확인 가능
 `);
+
+// ===============================
+// 카카오맵 수동 초기화 및 애플리케이션 시작
+// ===============================
+
+// 카카오맵 SDK 수동 로드 및 초기화
+function initializeApp() {
+    try {
+        if (typeof kakao !== 'undefined' && kakao.maps) {
+            console.log('카카오맵 SDK 이미 로드됨');
+            startApplication();
+        } else {
+            console.log('카카오맵 SDK 수동 로드 중...');
+            kakao.maps.load(() => {
+                console.log('카카오맵 SDK 로드 완료');
+                startApplication();
+            });
+        }
+    } catch (error) {
+        console.error('카카오맵 초기화 오류:', error);
+        showError('지도 서비스를 초기화할 수 없습니다. 페이지를 새로고침해주세요.');
+    }
+}
+
+// 메인 애플리케이션 시작
+async function startApplication() {
+    try {
+        console.log('애플리케이션 시작');
+        
+        // DOM 요소 초기화
+        elements.loadingOverlay = document.getElementById('loadingOverlay');
+        elements.errorMessage = document.getElementById('errorMessage');
+        elements.branchOfficeSelect = document.getElementById('branchOfficeSelect');
+        elements.branchSelect = document.getElementById('branchSelect');
+        elements.salesPersonDropdown = document.getElementById('salesPersonDropdown');
+        elements.totalRegions = document.getElementById('totalRegions');
+        elements.totalSalespeople = document.getElementById('totalSalespeople');
+        elements.totalBranches = document.getElementById('totalBranches');
+        elements.detailPanel = document.getElementById('detailPanel');
+        elements.detailContent = document.getElementById('detailContent');
+        elements.toggleLayerBtn = document.getElementById('toggleLayerBtn');
+        elements.applyFilterBtn = document.getElementById('applyFilterBtn');
+        elements.resetFilterBtn = document.getElementById('resetFilterBtn');
+        elements.closeDetailBtn = document.getElementById('closeDetailBtn');
+        elements.fitBoundsBtn = document.getElementById('fitBoundsBtn');
+
+        // 지도 초기화
+        initializeMap();
+        
+        // 이벤트 리스너 설정
+        setupEventListeners();
+        
+        // 데이터 로드
+        await loadData();
+        
+        console.log('✅ 애플리케이션 초기화 완료');
+        
+    } catch (error) {
+        console.error('애플리케이션 시작 오류:', error);
+        showError('애플리케이션을 시작할 수 없습니다. 페이지를 새로고침해주세요.');
+    }
+}
+
+// 이벤트 리스너 설정
+function setupEventListeners() {
+    if (elements.branchOfficeSelect) {
+        elements.branchOfficeSelect.addEventListener('change', onBranchOfficeChange);
+    }
+    
+    if (elements.branchSelect) {
+        elements.branchSelect.addEventListener('change', onBranchChange);
+    }
+    
+    if (elements.salesPersonDropdown) {
+        const button = elements.salesPersonDropdown.querySelector('.dropdown-button');
+        if (button) {
+            button.addEventListener('click', toggleSalesPersonDropdown);
+        }
+        document.addEventListener('click', closeSalesPersonDropdown);
+    }
+    
+    if (elements.applyFilterBtn) {
+        elements.applyFilterBtn.addEventListener('click', applyFilters);
+    }
+    
+    if (elements.resetFilterBtn) {
+        elements.resetFilterBtn.addEventListener('click', resetFilters);
+    }
+    
+    if (elements.toggleLayerBtn) {
+        elements.toggleLayerBtn.addEventListener('click', toggleBoundaryLayer);
+    }
+    
+    if (elements.closeDetailBtn) {
+        elements.closeDetailBtn.addEventListener('click', closeDetailPanel);
+    }
+    
+    if (elements.fitBoundsBtn) {
+        elements.fitBoundsBtn.addEventListener('click', fitMapBounds);
+    }
+}
+
+// 페이지 로드 시 애플리케이션 시작
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}
