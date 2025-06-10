@@ -4,7 +4,7 @@
   "description": "영업 담당 상권 조회 시스템 - Express.js 서버",
   "main": "server.js",
   "scripts": {
-    "start": "node --max-old-space-size=512 server.js",
+    "start": "node --max-old-space-size=1024 server.js",
     "dev": "nodemon server.js",
     "build": "echo 'No build required'",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,7 +12,8 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "@octokit/rest": "^20.0.2"
+    "@octokit/rest": "^20.0.2",
+    "compression": "^1.7.4"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

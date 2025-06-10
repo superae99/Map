@@ -70,6 +70,55 @@ async function loadDataWithRetry(url, maxRetries = 3) {
     throw lastError;
 }
 
+// 페이지네이션으로 대용량 데이터 로드
+async function loadAllDataWithPagination(baseUrl, pageSize = 5000) {
+    const allData = [];
+    let page = 1;
+    let hasMore = true;
+    
+    console.log(`📥 페이지네이션으로 데이터 로드 시작 (페이지 크기: ${pageSize})`);
+    
+    while (hasMore) {
+        try {
+            const url = `${baseUrl}&page=${page}&limit=${pageSize}`;
+            console.log(`📄 페이지 ${page} 로딩 중...`);
+            
+            const response = await loadDataWithRetry(url);
+            
+            // 새로운 페이지네이션 응답 형식 처리
+            if (response.data && Array.isArray(response.data)) {
+                allData.push(...response.data);
+                hasMore = response.pagination?.hasNext || false;
+                console.log(`✅ 페이지 ${page} 완료 (${response.data.length}개 항목, 총 ${allData.length}개)`);
+            } else if (Array.isArray(response)) {
+                // 기존 형식 지원
+                allData.push(...response);
+                hasMore = response.length === pageSize;
+                console.log(`✅ 페이지 ${page} 완료 (${response.length}개 항목, 총 ${allData.length}개)`);
+            } else {
+                hasMore = false;
+            }
+            
+            page++;
+            
+            // 메모리 압박 방지를 위한 짧은 지연
+            if (hasMore) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+        } catch (error) {
+            console.error(`페이지 ${page} 로딩 실패:`, error);
+            if (page === 1) {
+                throw error; // 첫 페이지 실패시 전체 실패
+            }
+            hasMore = false; // 중간 페이지 실패시 현재까지만 사용
+        }
+    }
+    
+    console.log(`🎉 페이지네이션 로딩 완료: 총 ${allData.length}개 항목`);
+    return allData;
+}
+
 // 메모리 리크 방지를 위한 이벤트 리스너 관리
 class EventManager {
     constructor() {
@@ -2033,7 +2082,7 @@ async function loadData() {
 
 async function loadSalesData() {
     try {
-        appData.salesData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.SALES_DATA);
+        appData.salesData = await loadAllDataWithPagination(APP_CONFIG.DATA_PATHS.SALES_DATA);
         
         const schema = {
             '담당 사번': { required: false },
@@ -2096,7 +2145,7 @@ async function loadAddressData() {
         } catch (apiError) {
             console.warn('API에서 데이터 로드 실패, 정적 파일로 대체:', apiError.message);
             // 3. API 실패 시 정적 파일에서 로드
-            appData.addressData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
+            appData.addressData = await loadAllDataWithPagination(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
         }
         
         // 데이터 로드 완료 후 validation 수행

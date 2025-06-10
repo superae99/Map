@@ -15,13 +15,30 @@ module.exports = async (req, res) => {
     
     try {
         const { data: jsonData } = await DataLoader.loadData();
-        const { type } = req.query;
+        const { type, page = 1, limit = 1000 } = req.query;
+        
+        // 페이지네이션 파라미터
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const startIndex = (pageNum - 1) * limitNum;
+        const endIndex = startIndex + limitNum;
         
         // 쿼리 매개변수에 따라 다른 데이터 형식 반환
         switch (type) {
             case 'sales':
-                // 영업사원 데이터만 반환 (SALES_DATA 용도)
-                res.status(200).json(jsonData);
+                // 영업사원 데이터만 반환 (SALES_DATA 용도) - 페이지네이션 적용
+                const paginatedData = jsonData.slice(startIndex, endIndex);
+                res.status(200).json({
+                    data: paginatedData,
+                    pagination: {
+                        page: pageNum,
+                        limit: limitNum,
+                        total: jsonData.length,
+                        totalPages: Math.ceil(jsonData.length / limitNum),
+                        hasNext: endIndex < jsonData.length,
+                        hasPrev: pageNum > 1
+                    }
+                });
                 break;
                 
             case 'topo':
@@ -32,8 +49,19 @@ module.exports = async (req, res) => {
                 
             case 'address':
             default:
-                // 기본: 주소 데이터 반환 (ADDRESS_DATA 용도)
-                res.status(200).json(jsonData);
+                // 기본: 주소 데이터 반환 (ADDRESS_DATA 용도) - 페이지네이션 적용
+                const paginatedAddressData = jsonData.slice(startIndex, endIndex);
+                res.status(200).json({
+                    data: paginatedAddressData,
+                    pagination: {
+                        page: pageNum,
+                        limit: limitNum,
+                        total: jsonData.length,
+                        totalPages: Math.ceil(jsonData.length / limitNum),
+                        hasNext: endIndex < jsonData.length,
+                        hasPrev: pageNum > 1
+                    }
+                });
                 break;
         }
     } catch (error) {

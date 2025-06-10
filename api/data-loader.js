@@ -6,7 +6,7 @@ const GitHubStorage = require('./github-storage');
 class DataLoader {
     static cache = null;
     static cacheTime = null;
-    static CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
+    static CACHE_DURATION = 10 * 60 * 1000; // 10분 캐시 (성능 개선)
 
     static async loadData() {
         // 캐시 확인

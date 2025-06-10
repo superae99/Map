@@ -11,6 +11,17 @@ const HOST = '0.0.0.0'; // Railway 호환성을 위해 추가
 console.log('서버 시작 메모리:', process.memoryUsage());
 
 // 미들웨어 설정 (메모리 절약을 위해 limit 축소)
+const compression = require('compression');
+app.use(compression({
+    level: 6,
+    threshold: '1kb',
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
