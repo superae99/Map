@@ -30,7 +30,7 @@ exports.handler = async (event, context) => {
     
     try {
         // TOPO_DATA: HangJeongDong_ver20250401.json 로드
-        const dataPath = path.join(__dirname, 'HangJeongDong_ver20250401.json');
+        const dataPath = path.join(__dirname, '../../public/data/HangJeongDong_ver20250401.json');
         
         console.log('TopoJSON 파일 로드 시작...');
         

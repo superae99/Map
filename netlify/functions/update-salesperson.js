@@ -1,5 +1,6 @@
-// Netlify Function with GitHub Storage Integration
-const DataLoader = require('./data-loader');
+// Netlify Function for updating salesperson data
+const fs = require('fs').promises;
+const path = require('path');
 
 // 거래처 ID 생성 함수
 function generateStoreId(item) {
@@ -61,7 +62,10 @@ exports.handler = async (event, context) => {
         
         console.log('수정 요청:', { storeId, newSalesNumber, newSalesperson });
         
-        const { data: jsonData } = await DataLoader.loadData();
+        // 데이터 파일 직접 로드
+        const dataPath = path.join(__dirname, '../../public/data.json');
+        const data = await fs.readFile(dataPath, 'utf8');
+        const jsonData = JSON.parse(data);
         
         // 수정할 항목 찾기
         const itemIndex = jsonData.findIndex(item => 
@@ -94,9 +98,10 @@ exports.handler = async (event, context) => {
         
         jsonData[itemIndex]['최종수정일시'] = new Date().toISOString();
         
-        // 데이터 저장 (GitHub 또는 로컬 파일에)
+        // 데이터 저장 (읽기 전용 모드 - 실제 저장 없음)
         const commitMessage = `Update salesperson: ${originalItem.거래처명} - ${originalItem['담당 영업사원']} → ${newSalesperson || originalItem['담당 영업사원']}`;
-        const storageType = await DataLoader.saveData(jsonData, commitMessage);
+        console.log('변경 사항 (읽기 전용):', commitMessage);
+        const storageType = 'readonly';
         
         // 수정 기록 생성
         const editRecord = {

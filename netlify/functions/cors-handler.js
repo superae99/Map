@@ -1,35 +1,34 @@
-// Shared CORS handling utility
-const cors = require('cors');
+// Shared CORS handling utility - No external dependencies
 
-// CORS 미들웨어 초기화
-const corsMiddleware = cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-});
+// Basic CORS headers
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
+};
 
-// Helper method to run CORS middleware
-function runMiddleware(req, res, fn) {
-    return new Promise((resolve, reject) => {
-        fn(req, res, (result) => {
-            if (result instanceof Error) {
-                return reject(result);
-            }
-            return resolve(result);
-        });
-    });
+// Handle CORS preflight
+function handleCors() {
+    return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: ''
+    };
 }
 
-// Simple CORS header setup for basic endpoints
-function setBasicCors(res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+// Add CORS headers to response
+function addCorsHeaders(response) {
+    return {
+        ...response,
+        headers: {
+            ...corsHeaders,
+            ...(response.headers || {})
+        }
+    };
 }
 
 module.exports = {
-    corsMiddleware,
-    runMiddleware,
-    setBasicCors
+    corsHeaders,
+    handleCors,
+    addCorsHeaders
 };
