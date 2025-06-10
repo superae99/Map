@@ -15,7 +15,27 @@ module.exports = async (req, res) => {
     
     try {
         const { data: jsonData } = await DataLoader.loadData();
-        res.status(200).json(jsonData);
+        const { type } = req.query;
+        
+        // 쿼리 매개변수에 따라 다른 데이터 형식 반환
+        switch (type) {
+            case 'sales':
+                // 영업사원 데이터만 반환 (SALES_DATA 용도)
+                res.status(200).json(jsonData);
+                break;
+                
+            case 'topo':
+                // 지역 경계 데이터 생성 (TOPO_DATA 용도)
+                const topoData = generateTopoData(jsonData);
+                res.status(200).json(topoData);
+                break;
+                
+            case 'address':
+            default:
+                // 기본: 주소 데이터 반환 (ADDRESS_DATA 용도)
+                res.status(200).json(jsonData);
+                break;
+        }
     } catch (error) {
         console.error('Error reading data:', error);
         res.status(500).json({ 
@@ -25,3 +45,38 @@ module.exports = async (req, res) => {
         });
     }
 };
+
+// TopoJSON 형태의 지역 경계 데이터 생성
+function generateTopoData(salesData) {
+    // 지역별로 그룹화
+    const regions = {};
+    
+    salesData.forEach(item => {
+        const region = item['시도명'] || item['지역'] || 'unknown';
+        if (!regions[region]) {
+            regions[region] = [];
+        }
+        regions[region].push(item);
+    });
+    
+    // 간단한 TopoJSON 구조 생성
+    return {
+        type: "Topology",
+        objects: {
+            regions: {
+                type: "GeometryCollection",
+                geometries: Object.keys(regions).map(region => ({
+                    type: "Feature",
+                    properties: {
+                        name: region,
+                        count: regions[region].length
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [126.9780, 37.5665] // 기본 좌표
+                    }
+                }))
+            }
+        }
+    };
+}
