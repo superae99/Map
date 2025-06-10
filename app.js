@@ -1107,8 +1107,20 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                 this.updateItemData(newSalesNumber, newSalesperson);
                 this.addToEditHistory(editRecord);
                 
-                // 전역 데이터 업데이트
-                window.salesData = result.data;
+                // 전역 데이터 업데이트 - API 응답에서 updatedItem 사용
+                if (result.updatedItem) {
+                    // appData.addressData에서 해당 항목 업데이트
+                    const storeId = this.generateStoreId(this.currentEditingItem);
+                    const addressIndex = appData.addressData.findIndex(item => 
+                        this.generateStoreId(item) === storeId
+                    );
+                    if (addressIndex !== -1) {
+                        appData.addressData[addressIndex] = result.updatedItem;
+                    }
+                    
+                    // joinDataBySalesNumber 다시 수행하여 모든 데이터 동기화
+                    joinDataBySalesNumber();
+                }
                 
                 // UI 새로고침
                 this.refreshMapAndUI();
@@ -1146,10 +1158,11 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
     }
 
     updateItemData(newSalesNumber, newSalesperson) {
-        if (newSalesNumber) {
+        // 새로운 값이 있을 때만 업데이트, 없으면 기존 값 유지
+        if (newSalesNumber !== undefined && newSalesNumber !== null && newSalesNumber !== '') {
             this.currentEditingItem['담당 사번'] = newSalesNumber;
         }
-        if (newSalesperson) {
+        if (newSalesperson !== undefined && newSalesperson !== null && newSalesperson !== '') {
             this.currentEditingItem['담당 영업사원'] = newSalesperson;
         }
 
@@ -1209,10 +1222,20 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
     }
 
     refreshMapAndUI() {
+        // 현재 필터 상태 저장
+        const currentBranch = document.getElementById('branchFilter')?.value;
+        const currentOffice = document.getElementById('officeFilter')?.value;
+        const currentSalesperson = document.getElementById('salespersonFilter')?.value;
+        
         // 필터를 다시 적용하여 편집된 데이터가 반영되도록 함
         applyFilters();
         updateSalespeopleOptions();
         updateColorLegend();
+        
+        // 필터 상태 복원
+        if (currentBranch) document.getElementById('branchFilter').value = currentBranch;
+        if (currentOffice) document.getElementById('officeFilter').value = currentOffice;
+        if (currentSalesperson) document.getElementById('salespersonFilter').value = currentSalesperson;
     }
 
     resetForm() {
