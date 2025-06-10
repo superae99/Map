@@ -1,10 +1,5 @@
-// Get store data endpoint with GitHub storage
-const fs = require('fs').promises;
-const path = require('path');
-
+// Simple test endpoint
 exports.handler = async (event, context) => {
-    const { httpMethod: method, headers, body, queryStringParameters } = event;
-    
     // CORS headers
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
@@ -12,7 +7,7 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
     };
     
-    if (method === 'OPTIONS') {
+    if (event.httpMethod === 'OPTIONS') {
         return {
             statusCode: 200,
             headers: corsHeaders,
@@ -20,7 +15,7 @@ exports.handler = async (event, context) => {
         };
     }
     
-    if (method !== 'GET') {
+    if (event.httpMethod !== 'GET') {
         return {
             statusCode: 405,
             headers: corsHeaders,
@@ -29,35 +24,35 @@ exports.handler = async (event, context) => {
     }
     
     try {
-        console.log('데이터 로드 시작...');
-        console.log('__dirname:', __dirname);
-        
-        // Functions 폴더 내 데이터 파일 접근
-        const dataPath = path.join(__dirname, 'output_address.json');
-        console.log('데이터 파일 경로:', dataPath);
-        
-        const data = await fs.readFile(dataPath, 'utf8');
-        const jsonData = JSON.parse(data);
-        
-        console.log(`데이터 로드 완료: ${jsonData.length}개 항목`);
+        // 테스트용 더미 데이터 반환
+        const testData = [
+            {
+                "거래처명": "테스트 거래처",
+                "담당 영업사원": "테스트 담당자",
+                "담당 사번": 12345,
+                "기본주소(사업자기준)": "서울특별시 강남구",
+                "RTM채널": "업소",
+                "위도": 37.5665,
+                "경도": 126.9780
+            }
+        ];
         
         return {
             statusCode: 200,
-            headers: corsHeaders,
-            body: JSON.stringify(jsonData)
+            headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
         };
     } catch (error) {
-        console.error('Error reading data:', error);
-        console.error('Error stack:', error.stack);
-        
         return {
             statusCode: 500,
             headers: corsHeaders,
             body: JSON.stringify({
                 success: false,
-                error: '데이터를 불러올 수 없습니다.',
-                details: error.message,
-                path: path.join(__dirname, 'output_address.json')
+                error: 'Server error',
+                details: error.message
             })
         };
     }
