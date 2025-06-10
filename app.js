@@ -6,9 +6,9 @@
 // 앱 설정 (config.js가 없을 경우 기본값)
 const APP_CONFIG = {
     DATA_PATHS: {
-        SALES_DATA: '/api/data?type=sales',
-        TOPO_DATA: '/api/data?type=topo',
-        ADDRESS_DATA: '/api/data?type=address'
+        SALES_DATA: '/data.json',
+        TOPO_DATA: '/data.json',
+        ADDRESS_DATA: '/data.json'
     },
     MAP_CONFIG: {
         CENTER_LAT: 37.5665,
