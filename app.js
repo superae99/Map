@@ -6,9 +6,9 @@
 // 앱 설정 (config.js가 없을 경우 기본값)
 const APP_CONFIG = {
     DATA_PATHS: {
-        SALES_DATA: '/api/data',
-        TOPO_DATA: '/data/HangJeongDong_ver20250401.json',
-        ADDRESS_DATA: '/data/output_address.json'
+        SALES_DATA: 'data.json',
+        TOPO_DATA: 'data/HangJeongDong_ver20250401.json',
+        ADDRESS_DATA: 'data/output_address.json'
     },
     MAP_CONFIG: {
         CENTER_LAT: 37.5665,
@@ -2035,9 +2035,7 @@ async function loadData() {
 
 async function loadSalesData() {
     try {
-        const response = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.SALES_DATA);
-        // API 응답인 경우 data 속성에서 실제 데이터 추출
-        appData.salesData = response.data || response;
+        appData.salesData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.SALES_DATA);
         
         const schema = {
             '담당 사번': { required: true },
