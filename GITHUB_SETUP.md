@@ -72,7 +72,7 @@ pwd
 
 # Git 저장소 초기화 (필요한 경우)
 git init
-git remote add origin https://github.com/your-username/Map.git
+git remote add origin https://github.com/superae99/Map.git
 
 # 데이터 파일 추가
 git add data/output_address.json
@@ -99,12 +99,12 @@ vercel --prod
 
 1. **데이터 로드 테스트**:
    ```bash
-   curl https://your-vercel-app.vercel.app/api/data
+   curl https://map-ci7il9vo7-kims-projects-a2e00c7b.vercel.app/api/data
    ```
 
 2. **담당자 수정 테스트**:
    ```bash
-   curl -X PUT https://your-vercel-app.vercel.app/api/update-salesperson \
+   curl -X PUT https://map-ci7il9vo7-kims-projects-a2e00c7b.vercel.app/api/update-salesperson \
      -H "Content-Type: application/json" \
      -d '{
        "storeId": "STORE_123",

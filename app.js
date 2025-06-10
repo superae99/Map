@@ -1085,12 +1085,39 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                 user: 'current_user'
             };
 
-            this.updateItemData(newSalesNumber, newSalesperson);
-            this.addToEditHistory(editRecord);
-            this.refreshMapAndUI();
+            // API 호출하여 서버에 저장
+            const response = await fetch('/api/update-salesperson', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    storeId: storeCode,
+                    newSalesNumber: newSalesNumber || this.currentEditingItem['담당 사번'],
+                    newSalesperson: newSalesperson || this.currentEditingItem['담당 영업사원'],
+                    editReason: editReason,
+                    editNote: editNote
+                })
+            });
 
-            notificationManager.success(`${this.currentEditingItem.거래처명}의 담당자 정보가 수정되었습니다.`);
-            this.closeEditModal();
+            const result = await response.json();
+
+            if (result.success) {
+                // 로컬 상태 업데이트
+                this.updateItemData(newSalesNumber, newSalesperson);
+                this.addToEditHistory(editRecord);
+                
+                // 전역 데이터 업데이트
+                window.salesData = result.data;
+                
+                // UI 새로고침
+                this.refreshMapAndUI();
+
+                notificationManager.success(`${this.currentEditingItem.거래처명}의 담당자 정보가 수정되었습니다.`);
+                this.closeEditModal();
+            } else {
+                throw new Error(result.message || '업데이트 실패');
+            }
 
             console.log('담당자 정보 수정 완료:', editRecord);
 
