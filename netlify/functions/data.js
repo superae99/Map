@@ -32,8 +32,8 @@ exports.handler = async (event, context) => {
         console.log('데이터 로드 시작...');
         console.log('__dirname:', __dirname);
         
-        // 직접 파일 경로 접근
-        const dataPath = path.join(__dirname, '../../data/output_address.json');
+        // Functions 폴더 내 데이터 파일 접근
+        const dataPath = path.join(__dirname, 'output_address.json');
         console.log('데이터 파일 경로:', dataPath);
         
         const data = await fs.readFile(dataPath, 'utf8');
@@ -57,7 +57,7 @@ exports.handler = async (event, context) => {
                 success: false,
                 error: '데이터를 불러올 수 없습니다.',
                 details: error.message,
-                path: path.join(__dirname, '../../data/output_address.json')
+                path: path.join(__dirname, 'output_address.json')
             })
         };
     }
