@@ -2082,7 +2082,7 @@ async function loadAddressData() {
 
         // 2. API 엔드포인트에서 최신 데이터를 가져오려고 시도
         try {
-            const response = await fetch('/api/data');
+            const response = await fetch(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
             if (response.ok) {
                 appData.addressData = await response.json();
                 console.log('API에서 최신 데이터 로드 성공:', appData.addressData.length, '개 항목');
