@@ -1592,10 +1592,10 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
             }
         }
 
-        // 검증 및 미리보기 업데이트
+        // 검증 및 담당자 정보 업데이트
         this.validateSalesNumber();
         this.validateSalesperson();
-        this.updatePreview();
+        this.updateSalespersonInfo();
     }
 
     // 지점 정보를 고려한 담당자 선택 (동명이인 처리)
@@ -1636,8 +1636,8 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                 console.log(`사번 자동 설정: ${salesNumber}`);
             }
 
-            // 검증 및 미리보기 업데이트 (순환 호출 방지)
-            this.updatePreview();
+            // 검증 및 담당자 정보 업데이트 (순환 호출 방지)
+            this.updateSalespersonInfo();
             this.validateForm();
             
         } catch (error) {
@@ -1758,7 +1758,7 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
 
     // 입력 변경 처리
     handleInputChange() {
-        this.updatePreview();
+        this.updateSalespersonInfo();
         this.updateValidation();
     }
 }
