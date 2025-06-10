@@ -1492,6 +1492,8 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
 
                 // 클릭 이벤트 추가
                 selectableItem.addEventListener('click', () => {
+                    console.log('클릭 이벤트 시작:', salesperson);
+                    
                     // 기존 선택 해제
                     const previousSelected = dropdownContent.querySelector('.selectable-item.selected');
                     if (previousSelected) {
@@ -1506,6 +1508,29 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                     selectableItem.style.borderColor = '#667eea';
                     
                     console.log('담당자 선택됨:', salesperson, salesNumber);
+                    console.log('선택 후 클래스:', selectableItem.className);
+                    console.log('선택 후 dataset:', selectableItem.dataset);
+                    
+                    // 드롭다운 버튼 텍스트 업데이트
+                    const dropdownButton = document.querySelector('#newSalespersonDropdown .dropdown-button span');
+                    if (dropdownButton) {
+                        dropdownButton.textContent = salesperson;
+                    }
+                    
+                    // 드롭다운 닫기 (선택 상태 유지)
+                    const dropdown = document.getElementById('newSalespersonDropdown');
+                    if (dropdown) {
+                        dropdown.classList.remove('active');
+                    }
+                    
+                    // 담당 사번 자동 입력
+                    if (salesNumber) {
+                        const salesNumberInput = document.getElementById('newSalesNumber');
+                        if (salesNumberInput && !salesNumberInput.value.trim()) {
+                            salesNumberInput.value = salesNumber;
+                            console.log('담당 사번 자동 입력:', salesNumber);
+                        }
+                    }
                 });
 
                 // 호버 효과
@@ -1690,14 +1715,30 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
             return '';
         }
 
+        console.log('드롭다운 요소 찾음:', dropdown);
+        
+        // 모든 selectable-item 확인
+        const allItems = dropdown.querySelectorAll('.selectable-item');
+        console.log('전체 selectable-item 개수:', allItems.length);
+        
+        allItems.forEach((item, index) => {
+            console.log(`Item ${index}:`, {
+                className: item.className,
+                hasSelected: item.classList.contains('selected'),
+                dataset: item.dataset
+            });
+        });
+
         const selectedItem = dropdown.querySelector('.selectable-item.selected');
         if (!selectedItem) {
             console.warn('선택된 담당자가 없습니다');
+            console.log('선택된 항목을 찾기 위한 쿼리:', '.selectable-item.selected');
             return '';
         }
 
         const salesperson = selectedItem.dataset.salesperson;
         console.log('선택된 담당자:', salesperson);
+        console.log('선택된 항목:', selectedItem);
         return salesperson || '';
     }
 }
