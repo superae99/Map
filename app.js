@@ -46,26 +46,54 @@ const APP_CONFIG = {
 // 유틸리티 클래스들
 // ===============================
 
-// 에러 처리 강화 - 재시도 로직
+// 에러 처리 강화 - 재시도 로직 (큰 파일 지원)
 async function loadDataWithRetry(url, maxRetries = 3) {
     console.log(`🔍 loadDataWithRetry 호출 - URL: ${url}`);
     let lastError;
     
+    // 큰 파일 판단 (주소 데이터)
+    const isLargeFile = url.includes('output_address.json');
+    const timeout = isLargeFile ? 60000 : 30000; // 큰 파일은 60초, 일반 파일은 30초
+    
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`📡 Fetch 요청 시도 ${attempt}: ${url}`);
-            const response = await fetch(url);
+            console.log(`📡 Fetch 요청 시도 ${attempt}: ${url} (타임아웃: ${timeout/1000}초)`);
+            
+            // 타임아웃 처리를 위한 AbortController 사용
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
+            const response = await fetch(url, { 
+                signal: controller.signal,
+                headers: {
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
+            
             console.log(`✅ 데이터 로드 성공: ${url}`);
+            
+            // 큰 파일의 경우 로딩 진행 상황 표시
+            if (isLargeFile) {
+                console.log('📦 큰 파일 파싱 중...');
+                showLoadingMessage && showLoadingMessage('큰 데이터 파일을 처리하는 중...');
+            }
+            
             return await response.json();
         } catch (error) {
             lastError = error;
-            console.warn(`❌ 데이터 로드 실패 (시도 ${attempt}/${maxRetries}) URL: ${url}:`, error.message);
+            const errorMsg = error.name === 'AbortError' ? 'Request timeout' : error.message;
+            console.warn(`❌ 데이터 로드 실패 (시도 ${attempt}/${maxRetries}) URL: ${url}:`, errorMsg);
             
             if (attempt < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+                const delay = Math.pow(2, attempt - 1) * 1000;
+                console.log(`⏳ ${delay/1000}초 후 재시도...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
     }
@@ -2087,20 +2115,10 @@ async function loadAddressData() {
             console.warn('localStorage 읽기 실패:', storageError);
         }
 
-        // 2. API 엔드포인트에서 최신 데이터를 가져오려고 시도
-        try {
-            const response = await fetch(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
-            if (response.ok) {
-                appData.addressData = await response.json();
-                console.log('API에서 최신 데이터 로드 성공:', appData.addressData.length, '개 항목');
-            } else {
-                throw new Error(`API 응답 오류: ${response.status}`);
-            }
-        } catch (apiError) {
-            console.warn('API에서 데이터 로드 실패, 정적 파일로 대체:', apiError.message);
-            // 3. API 실패 시 정적 파일에서 로드
-            appData.addressData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
-        }
+        // 2. 정적 파일에서 직접 로드 (큰 파일이므로 API 우회)
+        console.log('주소 데이터 직접 로드 시작...');
+        appData.addressData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
+        console.log('주소 데이터 로드 완료:', appData.addressData.length, '개 항목');
         
         // 데이터 로드 완료 후 validation 수행
         const schema = {
