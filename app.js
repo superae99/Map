@@ -26,18 +26,18 @@ const APP_CONFIG = {
     RTM_MARKER_CONFIG: {
         '업소': {
             shape: 'square',
-            size: new kakao.maps.Size(24, 24),
-            offset: new kakao.maps.Point(12, 24)
+            size: { width: 24, height: 24 },
+            offset: { x: 12, y: 24 }
         },
         '매장': {
             shape: 'circle', 
-            size: new kakao.maps.Size(24, 24),
-            offset: new kakao.maps.Point(12, 24)
+            size: { width: 24, height: 24 },
+            offset: { x: 12, y: 24 }
         },
         'default': {
             shape: 'diamond',
-            size: new kakao.maps.Size(26, 26),
-            offset: new kakao.maps.Point(13, 26)
+            size: { width: 26, height: 26 },
+            offset: { x: 13, y: 26 }
         }
     }
 };
@@ -432,8 +432,10 @@ function createMarkerImage(rtmChannel, salesperson) {
     
     return new kakao.maps.MarkerImage(
         svgSrc,
-        config.size,
-        { offset: config.offset }
+        new kakao.maps.Size(config.size.width, config.size.height),
+        {
+            offset: new kakao.maps.Point(config.offset.x, config.offset.y)
+        }
     );
 }
 
