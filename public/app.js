@@ -2036,10 +2036,11 @@ async function loadSalesData() {
         appData.salesData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.SALES_DATA);
         
         const schema = {
-            '담당 사번': { required: true },
-            '지사': { required: true, type: 'string' },
-            '지점': { required: true, type: 'string' },
-            '담당 영업사원': { required: true, type: 'string' }
+            '담당 사번': { required: false },
+            '지사': { required: false, type: 'string' },
+            '지점': { required: false, type: 'string' },
+            '지점/팀': { required: false, type: 'string' },
+            '담당 영업사원': { required: false, type: 'string' }
         };
         
         const validation = validateData(appData.salesData, schema);
