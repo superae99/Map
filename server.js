@@ -29,6 +29,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 정적 파일 서빙 (HTML, CSS, JS, images 등)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 데이터 파일 서빙
+app.use('/data', express.static(path.join(__dirname, 'public/data')));
+
 // API 라우트
 app.use('/api', require('./routes/api'));
 

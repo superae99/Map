@@ -7,8 +7,8 @@
 const APP_CONFIG = {
     DATA_PATHS: {
         SALES_DATA: '/api/data',
-        TOPO_DATA: 'public/data/HangJeongDong_ver20250401.json',
-        ADDRESS_DATA: 'public/data/output_address.json'
+        TOPO_DATA: '/data/HangJeongDong_ver20250401.json',
+        ADDRESS_DATA: '/data/output_address.json'
     },
     MAP_CONFIG: {
         CENTER_LAT: 37.5665,
