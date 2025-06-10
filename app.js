@@ -3940,16 +3940,19 @@ window.fullDebug() 실행으로 전체 상태 확인 가능
 // 카카오맵 SDK 수동 로드 및 초기화
 function initializeApp() {
     try {
-        if (typeof kakao !== 'undefined' && kakao.maps) {
-            console.log('카카오맵 SDK 이미 로드됨');
-            startApplication();
-        } else {
-            console.log('카카오맵 SDK 수동 로드 중...');
-            kakao.maps.load(() => {
-                console.log('카카오맵 SDK 로드 완료');
+        console.log('카카오맵 SDK 로드 시작...');
+        // 항상 kakao.maps.load()를 사용하여 완전한 초기화 보장
+        kakao.maps.load(() => {
+            console.log('카카오맵 SDK 로드 완료');
+            // 추가 검증: 필요한 클래스들이 실제로 사용 가능한지 확인
+            if (typeof kakao.maps.LatLng === 'function' && 
+                typeof kakao.maps.Map === 'function') {
+                console.log('카카오맵 클래스 검증 완료');
                 startApplication();
-            });
-        }
+            } else {
+                throw new Error('카카오맵 클래스가 완전히 로드되지 않았습니다.');
+            }
+        });
     } catch (error) {
         console.error('카카오맵 초기화 오류:', error);
         showError('지도 서비스를 초기화할 수 없습니다. 페이지를 새로고침해주세요.');
