@@ -1874,3 +1874,81 @@ body {
 .salesperson-edit-modal .btn:focus {
     outline-offset: 4px;
 }
+
+/* 새로운 미리보기 스타일 */
+.preview-content {
+    padding: 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+.preview-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.preview-item:last-child {
+    border-bottom: none;
+}
+
+.preview-label {
+    font-weight: 600;
+    color: #495057;
+    min-width: 120px;
+}
+
+.preview-change {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.preview-change .before {
+    color: #6c757d;
+    text-decoration: line-through;
+    font-size: 0.9em;
+}
+
+.preview-change .arrow {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.preview-change .after {
+    color: #28a745;
+    font-weight: 600;
+    background: rgba(40, 167, 69, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* 다크모드 지원 */
+[data-theme="dark"] .preview-content {
+    background: #404040;
+    border-color: #555;
+}
+
+[data-theme="dark"] .preview-item {
+    border-color: #555;
+}
+
+[data-theme="dark"] .preview-label {
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .preview-change .before {
+    color: #adb5bd;
+}
+
+[data-theme="dark"] .preview-change .after {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+}
