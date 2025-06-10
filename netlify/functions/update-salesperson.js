@@ -1,6 +1,5 @@
-// Vercel Serverless Function with GitHub Storage Integration
+// Netlify Function with GitHub Storage Integration
 const DataLoader = require('./data-loader');
-const { corsMiddleware, runMiddleware } = require('./cors-handler');
 
 // 거래처 ID 생성 함수
 function generateStoreId(item) {
@@ -24,27 +23,41 @@ function generateStoreId(item) {
 
 exports.handler = async (event, context) => {
     const { httpMethod: method, headers, body, queryStringParameters } = event;
-    // CORS 미들웨어 실행
-    await runMiddleware(req, res, corsMiddleware);
+    
+    // CORS headers
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+    };
     
     // OPTIONS 요청 처리
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+    if (method === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: ''
+        };
     }
     
     // POST와 PUT 요청 처리
-    if (req.method !== 'POST' && req.method !== 'PUT') {
-        return res.status(405).json({ error: 'Method not allowed' });
+    if (method !== 'POST' && method !== 'PUT') {
+        return {
+            statusCode: 405,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: 'Method not allowed' })
+        };
     }
     
     try {
+        const requestBody = JSON.parse(body || '{}');
         const { 
             storeId, 
             newSalesNumber, 
             newSalesperson, 
             editReason, 
             editNote 
-        } = req.body;
+        } = requestBody;
         
         console.log('수정 요청:', { storeId, newSalesNumber, newSalesperson });
         
@@ -56,10 +69,14 @@ exports.handler = async (event, context) => {
         );
         
         if (itemIndex === -1) {
-            return res.status(404).json({ 
-                success: false, 
-                error: '수정할 거래처를 찾을 수 없습니다.' 
-            });
+            return {
+                statusCode: 404,
+                headers: corsHeaders,
+                body: JSON.stringify({ 
+                    success: false, 
+                    error: '수정할 거래처를 찾을 수 없습니다.' 
+                })
+            };
         }
         
         // 원본 데이터 백업
@@ -101,20 +118,28 @@ exports.handler = async (event, context) => {
         };
         
         // 성공 응답
-        res.status(200).json({ 
-            success: true, 
-            message: '담당자 정보가 성공적으로 수정되었습니다.',
-            updatedItem: jsonData[itemIndex],
-            editRecord: editRecord,
-            storage: storageType
-        });
+        return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify({ 
+                success: true, 
+                message: '담당자 정보가 성공적으로 수정되었습니다.',
+                updatedItem: jsonData[itemIndex],
+                editRecord: editRecord,
+                storage: storageType
+            })
+        };
         
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: '서버 오류가 발생했습니다.',
-            details: error.message
-        });
+        return {
+            statusCode: 500,
+            headers: corsHeaders,
+            body: JSON.stringify({ 
+                success: false, 
+                error: '서버 오류가 발생했습니다.',
+                details: error.message
+            })
+        };
     }
 };
