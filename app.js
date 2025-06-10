@@ -1112,7 +1112,7 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
             
             // API 호출하여 서버에 저장
             const response = await fetch('/api/update-salesperson', {
-                method: 'PUT',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -1483,24 +1483,46 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                 const salesInfo = filteredItem?.salesInfo;
                 const salesNumber = salesInfo ? salesInfo['담당 사번'] : '';
 
-                const radioItem = document.createElement('div');
-                radioItem.className = 'radio-item';
+                const selectableItem = document.createElement('div');
+                selectableItem.className = 'selectable-item';
+                selectableItem.style.cssText = 'padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: background-color 0.2s; border: 1px solid transparent;';
+                selectableItem.dataset.salesperson = salesperson;
+                selectableItem.dataset.salesNumber = salesNumber;
+                selectableItem.dataset.branch = salesInfo?.['지점'] || '';
 
-                const label = document.createElement('label');
-                label.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; font-weight: normal; justify-content: space-between; width: 100%;';
+                // 클릭 이벤트 추가
+                selectableItem.addEventListener('click', () => {
+                    // 기존 선택 해제
+                    const previousSelected = dropdownContent.querySelector('.selectable-item.selected');
+                    if (previousSelected) {
+                        previousSelected.classList.remove('selected');
+                        previousSelected.style.backgroundColor = '';
+                        previousSelected.style.borderColor = 'transparent';
+                    }
+                    
+                    // 현재 항목 선택
+                    selectableItem.classList.add('selected');
+                    selectableItem.style.backgroundColor = '#e3f2fd';
+                    selectableItem.style.borderColor = '#667eea';
+                    
+                    console.log('담당자 선택됨:', salesperson, salesNumber);
+                });
 
-                const radio = document.createElement('input');
-                radio.type = 'radio';
-                radio.name = 'newSalesperson';
-                // 담당자명|사번|지점 형태로 고유 식별
-                radio.value = `${salesperson}|${salesNumber}|${salesInfo?.['지점'] || ''}`;
-                radio.dataset.salesperson = salesperson;
-                radio.dataset.salesNumber = salesNumber;
-                radio.dataset.branch = salesInfo?.['지점'] || '';
-                radio.style.cssText = 'margin: 0; accent-color: #667eea;';
+                // 호버 효과
+                selectableItem.addEventListener('mouseenter', () => {
+                    if (!selectableItem.classList.contains('selected')) {
+                        selectableItem.style.backgroundColor = '#f5f5f5';
+                    }
+                });
+                
+                selectableItem.addEventListener('mouseleave', () => {
+                    if (!selectableItem.classList.contains('selected')) {
+                        selectableItem.style.backgroundColor = '';
+                    }
+                });
 
                 const contentDiv = document.createElement('div');
-                contentDiv.style.cssText = 'display: flex; flex-direction: column; gap: 2px; flex: 1;';
+                contentDiv.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
 
                 const topDiv = document.createElement('div');
                 topDiv.style.cssText = 'display: flex; align-items: center; gap: 8px;';
@@ -1528,28 +1550,8 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                     contentDiv.appendChild(branchSpan);
                 }
 
-                radio.addEventListener('change', () => {
-                    if (radio.checked) {
-                        try {
-                            // dataset에서 정확한 정보 전달
-                            const salesperson = radio.dataset.salesperson || '';
-                            const salesNumber = radio.dataset.salesNumber || '';
-                            const branch = radio.dataset.branch || '';
-                            
-                            console.log('라디오 버튼 선택:', { salesperson, salesNumber, branch });
-                            
-                            this.selectSalespersonWithContext(salesperson, salesNumber, branch);
-                        } catch (error) {
-                            console.error('담당자 선택 중 오류:', error);
-                            notificationManager.error('담당자 선택 중 오류가 발생했습니다.');
-                        }
-                    }
-                });
-
-                label.appendChild(radio);
-                label.appendChild(contentDiv);
-                radioItem.appendChild(label);
-                dropdownContent.appendChild(radioItem);
+                selectableItem.appendChild(contentDiv);
+                dropdownContent.appendChild(selectableItem);
             });
 
             console.log(`담당자 드롭다운 초기화 완료: ${salespeople.length}명`);
@@ -1688,34 +1690,15 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
             return '';
         }
 
-        const selectedRadio = dropdown.querySelector('input[type="radio"]:checked');
-        if (!selectedRadio) {
-            console.warn('선택된 라디오 버튼이 없습니다');
+        const selectedItem = dropdown.querySelector('.selectable-item.selected');
+        if (!selectedItem) {
+            console.warn('선택된 담당자가 없습니다');
             return '';
         }
 
-        console.log('선택된 라디오 버튼:', selectedRadio);
-        console.log('라디오 버튼 dataset:', selectedRadio.dataset);
-        console.log('라디오 버튼 value:', selectedRadio.value);
-
-        // dataset에서 직접 가져오기 (더 안전함)
-        const datasetName = selectedRadio.dataset.salesperson;
-        if (datasetName) {
-            console.log('dataset에서 담당자명 추출:', datasetName);
-            return datasetName;
-        }
-        
-        // composite 값에서 파싱하기 (fallback)
-        const compositeValue = selectedRadio.value;
-        if (compositeValue.includes('|')) {
-            const salesperson = compositeValue.split('|')[0];
-            console.log('composite 값에서 담당자명 추출:', salesperson);
-            return salesperson;
-        }
-        
-        // 최종 fallback
-        console.log('최종 fallback 값:', compositeValue);
-        return compositeValue;
+        const salesperson = selectedItem.dataset.salesperson;
+        console.log('선택된 담당자:', salesperson);
+        return salesperson || '';
     }
 }
 
