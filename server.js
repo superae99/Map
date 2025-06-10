@@ -14,14 +14,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // 정적 파일 서빙 (HTML, CSS, JS, images 등)
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/data', express.static(path.join(__dirname, 'data')));
 
 // API 라우트
 app.use('/api', require('./routes/api'));
 
-// 메인 페이지 (index.html)
+// 메인 페이지 (public/index.html 사용)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // 404 처리
