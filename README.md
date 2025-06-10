@@ -1,6 +1,43 @@
 # 영업 담당 상권 조회 시스템
 
-실시간으로 담당자 정보를 수정하고 서버에 영구 저장할 수 있는 영업 상권 관리 시스템입니다.
+실시간으로 담당자 정보를 수정하고 GitHub에 영구 저장할 수 있는 영업 상권 관리 시스템입니다.
+
+## 🔧 환경 설정
+
+### Netlify 환경변수 설정
+
+실시간 데이터 업데이트를 위해 다음 환경변수들을 Netlify에 설정해야 합니다:
+
+#### 필수 환경변수
+```bash
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+#### 선택적 환경변수 (기본값 사용 가능)
+```bash
+GITHUB_OWNER=superae99
+GITHUB_REPO=Map
+GITHUB_BRANCH=main
+```
+
+### GitHub Personal Access Token 생성 방법
+
+1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. "Generate new token (classic)" 클릭
+3. 권한 선택: `repo` (전체 저장소 접근 권한) 체크
+4. 생성된 토큰을 복사하여 Netlify 환경변수에 설정
+
+### Netlify 환경변수 설정 방법
+
+1. [Netlify Dashboard](https://app.netlify.com) 접속
+2. 사이트 선택 → Site settings → Environment variables
+3. "Add a variable" 클릭하여 환경변수 추가
+
+### 설정 확인
+
+환경변수 설정 후 다음 URL로 연결 상태 확인:
+- `https://salesmap.netlify.app/api/github-test` - GitHub 연결 테스트
+- `https://salesmap.netlify.app/api/data` - 데이터 로딩 테스트
 
 ## 🚀 새로운 기능: 백엔드 API 연동
 
