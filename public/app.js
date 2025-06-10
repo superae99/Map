@@ -1850,28 +1850,12 @@ let showAllLegendItems = false;
 // ===============================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 카카오맵 SDK 로드 확인 및 초기화
+    // 카카오맵 SDK 로드 확인
     if (typeof kakao === 'undefined') {
         showError('카카오맵 API를 불러올 수 없습니다. 인터넷 연결을 확인해주세요.');
         return;
     }
     
-    // 카카오맵 SDK 수동 로드 (autoload=false이므로)
-    try {
-        console.log('카카오맵 SDK 초기화 시작...');
-        kakao.maps.load(function() {
-            console.log('✅ 카카오맵 SDK 로드 완료');
-            initializeApp();
-        });
-    } catch (kakaoError) {
-        console.error('카카오맵 SDK 초기화 실패:', kakaoError);
-        showError('카카오맵 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
-        return;
-    }
-});
-
-// 앱 초기화 함수 분리
-function initializeApp() {
     if (typeof topojson === 'undefined') {
         showError('TopoJSON 라이브러리를 불러올 수 없습니다. 인터넷 연결을 확인해주세요.');
         return;
@@ -1896,7 +1880,7 @@ function initializeApp() {
             forceResetAllFilters();
         }, 3000);
     });
-}
+});
 
 function loadUserPreferences(forceLoad = false) {
     // 강제 로드가 아닌 경우 초기 로드시에는 스킵
