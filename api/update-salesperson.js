@@ -1,26 +1,6 @@
 // Vercel Serverless Function with GitHub Storage Integration
-const cors = require('cors');
-const GitHubStorage = require('./github-storage');
-
-// CORS 미들웨어 초기화
-const corsMiddleware = cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-});
-
-// Helper method to wait for a middleware to execute before continuing
-function runMiddleware(req, res, fn) {
-    return new Promise((resolve, reject) => {
-        fn(req, res, (result) => {
-            if (result instanceof Error) {
-                return reject(result);
-            }
-            return resolve(result);
-        });
-    });
-}
+const DataLoader = require('./data-loader');
+const { corsMiddleware, runMiddleware } = require('./cors-handler');
 
 // 거래처 ID 생성 함수
 function generateStoreId(item) {
@@ -67,26 +47,7 @@ module.exports = async (req, res) => {
         
         console.log('수정 요청:', { storeId, newSalesNumber, newSalesperson });
         
-        // GitHub 설정 (환경 변수 사용)
-        const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-        
-        let jsonData;
-        let storage = null;
-        
-        // GitHub 사용 여부 확인 (프로덕션 환경)
-        if (GITHUB_TOKEN) {
-            storage = new GitHubStorage();
-            const result = await storage.getData();
-            jsonData = result.data;
-        } else {
-            // 로컬 파일에서 데이터 읽기 (개발 환경)
-            console.log('로컬 파일에서 데이터 로드 중...');
-            const fs = require('fs').promises;
-            const path = require('path');
-            const dataPath = path.join(process.cwd(), 'data', 'output_address.json');
-            const data = await fs.readFile(dataPath, 'utf8');
-            jsonData = JSON.parse(data);
-        }
+        const { data: jsonData } = await DataLoader.loadData();
         
         // 수정할 항목 찾기
         const itemIndex = jsonData.findIndex(item => 
@@ -115,15 +76,9 @@ module.exports = async (req, res) => {
         
         jsonData[itemIndex]['최종수정일시'] = new Date().toISOString();
         
-        // 데이터 저장
-        if (storage) {
-            // GitHub에 저장 (프로덕션 환경)
-            const commitMessage = `Update salesperson: ${originalItem.거래처명} - ${originalItem['담당 영업사원']} → ${newSalesperson || originalItem['담당 영업사원']}`;
-            await storage.updateData(jsonData, commitMessage);
-        } else {
-            // 로컬 파일에 저장 (개발 환경에서만)
-            console.log('경고: Vercel 환경에서는 파일 저장이 영구적이지 않습니다.');
-        }
+        // 데이터 저장 (GitHub 또는 로컬 파일에)
+        const commitMessage = `Update salesperson: ${originalItem.거래처명} - ${originalItem['담당 영업사원']} → ${newSalesperson || originalItem['담당 영업사원']}`;
+        const storageType = await DataLoader.saveData(jsonData, commitMessage);
         
         // 수정 기록 생성
         const editRecord = {
@@ -150,7 +105,7 @@ module.exports = async (req, res) => {
             message: '담당자 정보가 성공적으로 수정되었습니다.',
             updatedItem: jsonData[itemIndex],
             editRecord: editRecord,
-            storage: storage ? 'github' : 'local'
+            storage: storageType
         });
         
     } catch (error) {

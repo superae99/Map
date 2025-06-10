@@ -543,7 +543,6 @@ class SalespersonEditManager {
                                     >
                                     <div class="validation-feedback" id="salesNumberFeedback"></div>
                                 </div>
-                                <div class="input-suggestions" id="salesNumberSuggestions"></div>
                             </div>
 
                             <div class="form-group">
@@ -591,18 +590,19 @@ class SalespersonEditManager {
                         </div>
                     </div>
 
-                    <div class="edit-section preview-section" id="previewSection" style="display: none;">
-                        <h4>👀 변경 사항 미리보기</h4>
-                        <div class="preview-comparison">
-                            <div class="before-after">
-                                <div class="before">
-                                    <h5>변경 전</h5>
-                                    <div id="beforePreview"></div>
+                    <div class="edit-section current-info-section">
+                        <h4>📋 담당자 정보</h4>
+                        <div class="salesperson-info-grid">
+                            <div class="current-info">
+                                <h5>현재 담당자</h5>
+                                <div class="info-card" id="currentSalespersonInfo">
+                                    <!-- 현재 담당자 정보가 여기에 표시됩니다 -->
                                 </div>
-                                <div class="arrow">→</div>
-                                <div class="after">
-                                    <h5>변경 후</h5>
-                                    <div id="afterPreview"></div>
+                            </div>
+                            <div class="new-info">
+                                <h5>새로운 담당자</h5>
+                                <div class="info-card" id="newSalespersonInfo">
+                                    <div class="placeholder">담당자를 선택해주세요</div>
                                 </div>
                             </div>
                         </div>
@@ -633,8 +633,7 @@ class SalespersonEditManager {
 
         salesNumberInput.addEventListener('input', () => {
             this.validateSalesNumber();
-            this.showSalesNumberSuggestions();
-            this.updatePreview();
+            this.updateSalespersonInfo();
         });
 
         // 드롭다운 클릭 이벤트
@@ -656,9 +655,6 @@ class SalespersonEditManager {
         // 드롭다운 초기화
         this.initializeSalespersonDropdown();
 
-        salesNumberInput.addEventListener('blur', () => {
-            setTimeout(() => this.hideSuggestions('salesNumber'), 200);
-        });
 
         const formInputs = ['newSalesNumber', 'editReason', 'editNote'];
         formInputs.forEach(inputId => {
@@ -689,6 +685,9 @@ class SalespersonEditManager {
         
         // 실시간 유효성 검사 및 미리보기 이벤트 리스너 추가
         this.setupEventListeners();
+        
+        // 담당자 정보 업데이트
+        this.updateSalespersonInfo();
 
         setTimeout(() => {
             document.getElementById('newSalesNumber').focus();
@@ -896,129 +895,42 @@ class SalespersonEditManager {
         autoMatchInfo.style.display = 'block';
     }
 
-    showSalesNumberSuggestions() {
-        const input = document.getElementById('newSalesNumber');
-        const suggestions = document.getElementById('salesNumberSuggestions');
-        const value = input.value.trim().toLowerCase();
 
-        if (!value) {
-            suggestions.style.display = 'none';
-            return;
-        }
 
-        const matches = Array.from(this.validSalesNumbers)
-            .filter(number => number.includes(value))
-            .slice(0, 5);
 
-        if (matches.length > 0) {
-            suggestions.innerHTML = matches.map(number => {
-                const sales = appData.salesData.find(s => String(s['담당 사번']) === number);
-                return `
-                    <div class="suggestion-item" onclick="salespersonEditManager.selectSalesNumber('${number}')">
-                        <span class="suggestion-number">${number}</span>
-                        <span class="suggestion-name">${sales ? sales['담당 영업사원'] : ''}</span>
-                        <span class="suggestion-branch">${sales ? `${sales.지사} > ${sales.지점}` : ''}</span>
-                    </div>
-                `;
-            }).join('');
-            suggestions.style.display = 'block';
-        } else {
-            suggestions.style.display = 'none';
-        }
-    }
-
-    showSalespersonSuggestions() {
-        // 이 메서드는 더이상 사용되지 않음 (드롭다운으로 대체됨)
-        console.warn('showSalespersonSuggestions is deprecated - using dropdown instead');
-        return;
-    }
-
-    selectSalesNumber(number) {
-        document.getElementById('newSalesNumber').value = number;
-        
-        // 사번에 해당하는 담당자 자동 설정
-        const salesInfo = appData.salesData.find(sales => 
-            String(sales['담당 사번']) === String(number)
-        );
-        
-        if (salesInfo && salesInfo['담당 영업사원']) {
-            const dropdown = document.getElementById('newSalespersonDropdown');
-            if (dropdown) {
-                // 드롭다운 버튼 텍스트 업데이트
-                const button = dropdown.querySelector('.dropdown-button span');
-                if (button) {
-                    button.textContent = salesInfo['담당 영업사원'];
-                }
-                
-                // 해당 라디오 버튼 선택
-                const radio = dropdown.querySelector(`input[value="${salesInfo['담당 영업사원']}"]`);
-                if (radio) {
-                    radio.checked = true;
-                }
-                
-                console.log(`사번 "${number}" 선택 → 담당자 "${salesInfo['담당 영업사원']}" 자동 설정`);
-            }
-        }
-        
-        this.hideSuggestions('salesNumber');
-        this.validateSalesNumber();
-        this.validateSalesperson();
-        this.updatePreview();
-        this.validateForm();
-    }
-
-    selectSalespersonFromSuggestion(name) {
-        this.selectSalesperson(name);
-        this.hideSuggestions('salesperson');
-        this.validateSalesperson();
-        this.validateForm();
-    }
-
-    hideSuggestions(type) {
-        if (type === 'salesNumber') {
-            const suggestions = document.getElementById('salesNumberSuggestions');
-            if (suggestions) {
-                suggestions.style.display = 'none';
-            }
-        }
-        // salesperson suggestions는 더이상 사용되지 않음 (드롭다운으로 대체)
-    }
-
-    updatePreview() {
+    updateSalespersonInfo() {
         const newSalesNumber = document.getElementById('newSalesNumber').value.trim();
         const newSalesperson = this.getSelectedSalesperson();
-        const previewSection = document.getElementById('previewSection');
-        const beforePreview = document.getElementById('beforePreview');
-        const afterPreview = document.getElementById('afterPreview');
+        const currentInfo = document.getElementById('currentSalespersonInfo');
+        const newInfo = document.getElementById('newSalespersonInfo');
 
-        if (!newSalesNumber && !newSalesperson) {
-            previewSection.style.display = 'none';
-            return;
+        // 현재 담당자 정보 표시
+        currentInfo.innerHTML = `
+            <div class="info-item">
+                <span class="info-label">사번:</span>
+                <span class="info-value">${this.currentEditingItem['담당 사번'] || '미배정'}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">이름:</span>
+                <span class="info-value">${this.currentEditingItem['담당 영업사원'] || '미배정'}</span>
+            </div>
+        `;
+
+        // 새로운 담당자 정보 표시
+        if (newSalesNumber || newSalesperson) {
+            newInfo.innerHTML = `
+                <div class="info-item">
+                    <span class="info-label">사번:</span>
+                    <span class="info-value">${newSalesNumber || '미배정'}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">이름:</span>
+                    <span class="info-value">${newSalesperson || '미배정'}</span>
+                </div>
+            `;
+        } else {
+            newInfo.innerHTML = '<div class="placeholder">담당자를 선택해주세요</div>';
         }
-
-        beforePreview.innerHTML = `
-            <div class="preview-item">
-                <span class="preview-label">담당 사번:</span>
-                <span class="preview-value">${this.currentEditingItem['담당 사번'] || '미배정'}</span>
-            </div>
-            <div class="preview-item">
-                <span class="preview-label">담당 영업사원:</span>
-                <span class="preview-value">${this.currentEditingItem['담당 영업사원'] || '미배정'}</span>
-            </div>
-        `;
-
-        afterPreview.innerHTML = `
-            <div class="preview-item">
-                <span class="preview-label">담당 사번:</span>
-                <span class="preview-value ${newSalesNumber !== this.currentEditingItem['담당 사번'] ? 'changed' : ''}">${newSalesNumber || '미배정'}</span>
-            </div>
-            <div class="preview-item">
-                <span class="preview-label">담당 영업사원:</span>
-                <span class="preview-value ${newSalesperson !== this.currentEditingItem['담당 영업사원'] ? 'changed' : ''}">${newSalesperson || '미배정'}</span>
-            </div>
-        `;
-
-        previewSection.style.display = 'block';
     }
 
     validateForm() {
@@ -1562,7 +1474,7 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                     console.log('미리보기 및 검증 업데이트 시작');
                     try {
                         if (window.salespersonEditManager) {
-                            window.salespersonEditManager.updatePreview();
+                            window.salespersonEditManager.updateSalespersonInfo();
                             window.salespersonEditManager.updateValidation();
                             console.log('미리보기 및 검증 업데이트 완료');
                         } else {
@@ -1782,75 +1694,6 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
         return salesperson || '';
     }
 
-    // 미리보기 업데이트
-    updatePreview() {
-        console.log('updatePreview 호출됨');
-        
-        const newSalesNumber = document.getElementById('newSalesNumber')?.value?.trim() || '';
-        const newSalesperson = this.getSelectedSalesperson();
-        
-        const previewSection = document.getElementById('previewSection');
-        console.log('미리보기 데이터:', {
-            newSalesNumber,
-            newSalesperson,
-            previewSectionExists: !!previewSection
-        });
-        
-        if (!previewSection) {
-            console.warn('previewSection을 찾을 수 없음');
-            return;
-        }
-
-        if (newSalesNumber || newSalesperson) {
-            const currentSalesNumber = this.currentEditingItem['담당 사번'];
-            const currentSalesperson = this.currentEditingItem['담당 영업사원'];
-            
-            let previewHTML = '<div class="preview-content">';
-            let hasChanges = false;
-            
-            if (newSalesNumber && newSalesNumber !== String(currentSalesNumber)) {
-                previewHTML += `
-                    <div class="preview-item">
-                        <span class="preview-label">담당 사번:</span>
-                        <span class="preview-change">
-                            <span class="before">${currentSalesNumber || '없음'}</span>
-                            <span class="arrow">→</span>
-                            <span class="after">${newSalesNumber}</span>
-                        </span>
-                    </div>
-                `;
-                hasChanges = true;
-            }
-            
-            if (newSalesperson && newSalesperson !== currentSalesperson) {
-                previewHTML += `
-                    <div class="preview-item">
-                        <span class="preview-label">담당 영업사원:</span>
-                        <span class="preview-change">
-                            <span class="before">${currentSalesperson || '없음'}</span>
-                            <span class="arrow">→</span>
-                            <span class="after">${newSalesperson}</span>
-                        </span>
-                    </div>
-                `;
-                hasChanges = true;
-            }
-            
-            previewHTML += '</div>';
-            
-            if (hasChanges) {
-                previewSection.innerHTML = previewHTML;
-                previewSection.style.display = 'block';
-                console.log('미리보기 표시됨');
-            } else {
-                previewSection.style.display = 'none';
-                console.log('변경사항 없어서 미리보기 숨김');
-            }
-        } else {
-            previewSection.style.display = 'none';
-            console.log('입력값 없어서 미리보기 숨김');
-        }
-    }
 
     // 유효성 검사 및 저장 버튼 활성화
     updateValidation() {
