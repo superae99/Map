@@ -1228,11 +1228,7 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
         document.getElementById('salesNumberFeedback').textContent = '';
         document.getElementById('salespersonFeedback').textContent = '';
 
-        document.getElementById('salesNumberSuggestions').style.display = 'none';
-        // salespersonSuggestions는 드롭다운으로 변경되어 더이상 존재하지 않음
-
         document.getElementById('autoMatchInfo').style.display = 'none';
-        document.getElementById('previewSection').style.display = 'none';
 
         document.getElementById('saveEditBtn').disabled = true;
         document.getElementById('saveEditBtn').classList.remove('btn-ready');
