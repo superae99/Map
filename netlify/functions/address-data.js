@@ -29,12 +29,15 @@ exports.handler = async (event, context) => {
     }
     
     try {
-        // ADDRESS_DATA: output_address.json 로드
+        // ADDRESS_DATA: output_address.json 로드 (큰 파일이므로 샘플링)
         const dataPath = path.join(__dirname, 'output_address.json');
         const data = await fs.readFile(dataPath, 'utf8');
         const jsonData = JSON.parse(data);
         
-        console.log(`실제 데이터 로드 완료: ${jsonData.length}개 항목`);
+        // 파일이 너무 크므로 첫 1000개 항목만 반환
+        const sampleData = jsonData.slice(0, 1000);
+        
+        console.log(`주소 데이터 로드 완료: ${sampleData.length}개 항목 (전체 ${jsonData.length}개 중 샘플)`);
         
         return {
             statusCode: 200,
@@ -42,17 +45,17 @@ exports.handler = async (event, context) => {
                 ...corsHeaders,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(jsonData)
+            body: JSON.stringify(sampleData)
         };
     } catch (error) {
-        console.error('데이터 로드 오류:', error);
+        console.error('주소 데이터 로드 오류:', error);
         
         return {
             statusCode: 500,
             headers: corsHeaders,
             body: JSON.stringify({
                 success: false,
-                error: '데이터를 불러올 수 없습니다.',
+                error: '주소 데이터를 불러올 수 없습니다.',
                 details: error.message
             })
         };

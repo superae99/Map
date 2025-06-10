@@ -31,6 +31,18 @@ exports.handler = async (event, context) => {
     try {
         // TOPO_DATA: HangJeongDong_ver20250401.json 로드
         const dataPath = path.join(__dirname, 'HangJeongDong_ver20250401.json');
+        
+        console.log('TopoJSON 파일 로드 시작...');
+        
+        // 파일 크기 확인
+        const stats = await fs.stat(dataPath);
+        console.log(`TopoJSON 파일 크기: ${(stats.size / 1024 / 1024).toFixed(2)}MB`);
+        
+        // 파일이 너무 크면 에러 반환
+        if (stats.size > 5 * 1024 * 1024) { // 5MB 제한
+            throw new Error(`파일이 너무 큽니다: ${(stats.size / 1024 / 1024).toFixed(2)}MB`);
+        }
+        
         const data = await fs.readFile(dataPath, 'utf8');
         const jsonData = JSON.parse(data);
         
@@ -40,7 +52,8 @@ exports.handler = async (event, context) => {
             statusCode: 200,
             headers: {
                 ...corsHeaders,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Content-Encoding': 'identity'
             },
             body: JSON.stringify(jsonData)
         };
@@ -53,7 +66,8 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({
                 success: false,
                 error: 'TopoJSON 데이터를 불러올 수 없습니다.',
-                details: error.message
+                details: error.message,
+                fileSize: error.message.includes('크기') ? error.message : undefined
             })
         };
     }
