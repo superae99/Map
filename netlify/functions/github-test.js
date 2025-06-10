@@ -28,7 +28,8 @@ exports.handler = async (event, context) => {
     }
     
     try {
-        const hasToken = !!process.env.GITHUB_TOKEN;
+        const token = process.env.GITHUB_TOKEN;
+        const hasToken = !!token;
         
         if (!hasToken) {
             return {
@@ -40,13 +41,61 @@ exports.handler = async (event, context) => {
                     github: {
                         enabled: false,
                         token: false
+                    },
+                    recommendations: [
+                        '1. GitHub Personal Access Token 생성',
+                        '2. Netlify 환경변수에 GITHUB_TOKEN 설정',
+                        '3. Token에 repo 권한 부여 확인'
+                    ]
+                })
+            };
+        }
+        
+        // 토큰 기본 검증
+        const tokenInfo = {
+            length: token.length,
+            prefix: token.substring(0, 8) + '...',
+            format: token.startsWith('ghp_') ? 'Personal Access Token (Classic)' :
+                   token.startsWith('github_pat_') ? 'Fine-grained Personal Access Token' :
+                   'Unknown format',
+            valid_format: token.startsWith('ghp_') || token.startsWith('github_pat_')
+        };
+        
+        let githubStorage;
+        try {
+            githubStorage = new GitHubStorage();
+        } catch (initError) {
+            return {
+                statusCode: 200,
+                headers: corsHeaders,
+                body: JSON.stringify({
+                    success: false,
+                    message: `GitHub Storage 초기화 실패: ${initError.message}`,
+                    github: {
+                        enabled: true,
+                        token: true,
+                        tokenInfo: tokenInfo,
+                        initError: initError.message
                     }
                 })
             };
         }
         
-        const githubStorage = new GitHubStorage();
         const connectionTest = await githubStorage.testConnection();
+        
+        // 추가 진단 정보
+        const diagnostics = {
+            environment: {
+                NODE_ENV: process.env.NODE_ENV,
+                NETLIFY: !!process.env.NETLIFY,
+                AWS_REGION: process.env.AWS_REGION
+            },
+            repository: {
+                owner: process.env.GITHUB_OWNER || 'superae99',
+                repo: process.env.GITHUB_REPO || 'Map',
+                branch: process.env.GITHUB_BRANCH || 'main'
+            }
+        };
         
         return {
             statusCode: 200,
@@ -55,11 +104,13 @@ exports.handler = async (event, context) => {
                 success: connectionTest.connected,
                 message: connectionTest.connected ? 
                     'GitHub 연결이 성공적으로 확인되었습니다.' : 
-                    'GitHub 연결에 실패했습니다.',
+                    `GitHub 연결에 실패했습니다: ${connectionTest.error}`,
                 github: {
                     enabled: true,
                     token: true,
-                    connection: connectionTest
+                    tokenInfo: tokenInfo,
+                    connection: connectionTest,
+                    diagnostics: diagnostics
                 },
                 timestamp: new Date().toISOString()
             })
