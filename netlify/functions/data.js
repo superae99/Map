@@ -1,7 +1,15 @@
 // 데이터 조회 API - GitHub 연동 지원
 const fs = require('fs').promises;
 const path = require('path');
-const GitHubStorage = require('./github-storage');
+
+// GitHubStorage를 조건부로 로드
+let GitHubStorage;
+try {
+    GitHubStorage = require('./github-storage');
+} catch (error) {
+    console.log('GitHubStorage 모듈 로드 실패:', error.message);
+    GitHubStorage = null;
+}
 
 exports.handler = async (event, context) => {
     const { httpMethod: method } = event;
@@ -36,8 +44,8 @@ exports.handler = async (event, context) => {
         let dataSource = 'local';
         let cacheInfo = null;
         
-        // GitHub 토큰이 있으면 GitHub에서 먼저 시도
-        if (process.env.GITHUB_TOKEN) {
+        // GitHub 토큰이 있고 GitHubStorage가 로드되었으면 GitHub에서 먼저 시도
+        if (process.env.GITHUB_TOKEN && GitHubStorage) {
             try {
                 console.log('GitHub에서 데이터 로드 시도...');
                 const githubStorage = new GitHubStorage();

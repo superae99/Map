@@ -6,7 +6,7 @@
 // 앱 설정 (config.js가 없을 경우 기본값)
 const APP_CONFIG = {
     DATA_PATHS: {
-        SALES_DATA: '/api/data',
+        SALES_DATA: 'data/juso_output_file.json', // 정적 파일 직접 사용
         TOPO_DATA: 'data/HangJeongDong_ver20250401.json',
         ADDRESS_DATA: 'data/output_address.json'
     },
@@ -2065,8 +2065,8 @@ async function loadData() {
 async function loadSalesData() {
     try {
         const response = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.SALES_DATA);
-        // API 응답인 경우 data 속성에서 실제 데이터 추출
-        appData.salesData = response.data || response;
+        // 직접 JSON 파일을 로드하므로 response가 곧 데이터 배열
+        appData.salesData = Array.isArray(response) ? response : (response.data || response);
         
         const schema = {
             '담당 사번': { required: true },
