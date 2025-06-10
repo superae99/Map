@@ -44,7 +44,19 @@ class DataLoader {
             }
         }
         
-        // 2순위: 로컬/배포된 파일 사용
+        // 2순위: public 디렉토리의 data.json 사용 (배포 환경 우선)
+        try {
+            console.log('public/data.json에서 데이터 로드 중...');
+            const publicDataPath = path.join(process.cwd(), 'public', 'data.json');
+            const data = await fs.readFile(publicDataPath, 'utf8');
+            const jsonData = JSON.parse(data);
+            console.log(`public/data.json에서 ${jsonData.length}개 데이터 로드 완료`);
+            return { data: jsonData, storage: null };
+        } catch (error) {
+            console.log('public/data.json 없음, 원본 파일 시도');
+        }
+        
+        // 3순위: 로컬/배포된 파일 사용
         try {
             console.log('로컬 파일에서 데이터 로드 중...');
             const dataPath = path.join(process.cwd(), 'data', 'output_address.json');
