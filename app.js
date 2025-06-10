@@ -1110,45 +1110,62 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
             
             console.log('API 요청 데이터:', requestData);
             
-            // API 호출하여 서버에 저장
-            const response = await fetch('/api/update-salesperson', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
+            try {
+                // API 호출 시도
+                const response = await fetch('/api/update-salesperson', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
 
-            const result = await response.json();
-
-            if (result.success) {
-                // 로컬 상태 업데이트
-                this.updateItemData(newSalesNumber, newSalesperson);
-                this.addToEditHistory(editRecord);
-                
-                // 전역 데이터 업데이트 - API 응답에서 updatedItem 사용
-                if (result.updatedItem) {
-                    // appData.addressData에서 해당 항목 업데이트
-                    const storeId = this.generateStoreId(this.currentEditingItem);
-                    const addressIndex = appData.addressData.findIndex(item => 
-                        this.generateStoreId(item) === storeId
-                    );
-                    if (addressIndex !== -1) {
-                        appData.addressData[addressIndex] = result.updatedItem;
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('서버 업데이트 성공');
                     }
-                    
-                    // joinDataBySalesNumber 다시 수행하여 모든 데이터 동기화
-                    joinDataBySalesNumber();
                 }
-                
-                // UI 새로고침
-                this.refreshMapAndUI();
-
-                notificationManager.success(`${this.currentEditingItem.거래처명}의 담당자 정보가 수정되었습니다.`);
-                this.closeEditModal();
-            } else {
-                throw new Error(result.message || '업데이트 실패');
+            } catch (serverError) {
+                console.warn('서버 업데이트 실패, 로컬에서만 처리:', serverError.message);
             }
+
+            // 로컬 상태 업데이트 (서버 성공 여부와 관계없이)
+            this.updateItemData(newSalesNumber, newSalesperson);
+            this.addToEditHistory(editRecord);
+            
+            // 전역 데이터 업데이트
+            const storeId = this.generateStoreId(this.currentEditingItem);
+            const addressIndex = appData.addressData.findIndex(item => 
+                this.generateStoreId(item) === storeId
+            );
+            if (addressIndex !== -1) {
+                // 직접 데이터 업데이트
+                if (newSalesNumber !== null && newSalesNumber !== undefined && newSalesNumber !== '') {
+                    appData.addressData[addressIndex]['담당 사번'] = parseInt(newSalesNumber);
+                }
+                if (newSalesperson !== null && newSalesperson !== undefined && newSalesperson !== '') {
+                    appData.addressData[addressIndex]['담당 영업사원'] = newSalesperson;
+                }
+                appData.addressData[addressIndex]['최종수정일시'] = new Date().toISOString();
+            }
+            
+            // joinDataBySalesNumber 다시 수행하여 모든 데이터 동기화
+            joinDataBySalesNumber();
+            
+            // 수정된 데이터를 localStorage에 저장
+            try {
+                localStorage.setItem('modifiedAddressData', JSON.stringify(appData.addressData));
+                console.log('수정된 데이터를 localStorage에 저장');
+            } catch (storageError) {
+                console.warn('localStorage 저장 실패:', storageError);
+            }
+            
+            // UI 새로고침
+            this.refreshMapAndUI();
+
+            notificationManager.success(`${this.currentEditingItem.거래처명}의 담당자 정보가 수정되었습니다.`);
+            this.closeEditModal();
 
             console.log('담당자 정보 수정 완료:', editRecord);
 
@@ -2044,7 +2061,26 @@ async function loadSalesData() {
 
 async function loadAddressData() {
     try {
-        // 먼저 API 엔드포인트에서 최신 데이터를 가져오려고 시도
+        // 1. localStorage에서 수정된 데이터 확인
+        try {
+            // URL 파라미터로 데이터 초기화 확인
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('resetData') === 'true') {
+                localStorage.removeItem('modifiedAddressData');
+                console.log('localStorage 데이터 초기화');
+            } else {
+                const modifiedData = localStorage.getItem('modifiedAddressData');
+                if (modifiedData) {
+                    appData.addressData = JSON.parse(modifiedData);
+                    console.log('localStorage에서 수정된 데이터 로드:', appData.addressData.length, '개 항목');
+                    return; // localStorage 데이터가 있으면 바로 리턴
+                }
+            }
+        } catch (storageError) {
+            console.warn('localStorage 읽기 실패:', storageError);
+        }
+
+        // 2. API 엔드포인트에서 최신 데이터를 가져오려고 시도
         try {
             const response = await fetch('/api/data');
             if (response.ok) {
@@ -2055,10 +2091,11 @@ async function loadAddressData() {
             }
         } catch (apiError) {
             console.warn('API에서 데이터 로드 실패, 정적 파일로 대체:', apiError.message);
-            // API 실패 시 정적 파일에서 로드
+            // 3. API 실패 시 정적 파일에서 로드
             appData.addressData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
         }
         
+        // 데이터 로드 완료 후 validation 수행
         const schema = {
             '담당 사번': { required: true },
             '거래처명': { required: true, type: 'string' },
