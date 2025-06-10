@@ -48,18 +48,21 @@ const APP_CONFIG = {
 
 // 에러 처리 강화 - 재시도 로직
 async function loadDataWithRetry(url, maxRetries = 3) {
+    console.log(`🔍 loadDataWithRetry 호출 - URL: ${url}`);
     let lastError;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
+            console.log(`📡 Fetch 요청 시도 ${attempt}: ${url}`);
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
+            console.log(`✅ 데이터 로드 성공: ${url}`);
             return await response.json();
         } catch (error) {
             lastError = error;
-            console.warn(`데이터 로드 실패 (시도 ${attempt}/${maxRetries}):`, error.message);
+            console.warn(`❌ 데이터 로드 실패 (시도 ${attempt}/${maxRetries}) URL: ${url}:`, error.message);
             
             if (attempt < maxRetries) {
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
@@ -1992,6 +1995,8 @@ function initializeSalespersonEdit() {
 
 async function loadData() {
     showLoading(true);
+    
+    console.log('🎯 APP_CONFIG.DATA_PATHS:', APP_CONFIG.DATA_PATHS);
     
     try {
         await Promise.all([
