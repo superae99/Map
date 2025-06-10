@@ -31,17 +31,30 @@ class DataLoader {
     static async loadFromSource() {
         const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
         
+        // 1순위: GitHub API 시도 (환경변수가 있을 때)
         if (GITHUB_TOKEN) {
-            const storage = new GitHubStorage();
-            const result = await storage.getData();
-            return { data: result.data, storage };
-        } else {
+            try {
+                console.log('GitHub API 시도 중...');
+                const storage = new GitHubStorage();
+                const result = await storage.getData();
+                console.log('GitHub API 성공');
+                return { data: result.data, storage };
+            } catch (error) {
+                console.warn('GitHub API 실패, 로컬 파일로 fallback:', error.message);
+            }
+        }
+        
+        // 2순위: 로컬/배포된 파일 사용
+        try {
             console.log('로컬 파일에서 데이터 로드 중...');
             const dataPath = path.join(process.cwd(), 'data', 'output_address.json');
             const data = await fs.readFile(dataPath, 'utf8');
             const jsonData = JSON.parse(data);
             console.log(`로컬 파일에서 ${jsonData.length}개 데이터 로드 완료`);
             return { data: jsonData, storage: null };
+        } catch (error) {
+            console.error('로컬 파일 로드도 실패:', error.message);
+            throw new Error('데이터를 로드할 수 없습니다. GitHub API와 로컬 파일 모두 실패했습니다.');
         }
     }
 
