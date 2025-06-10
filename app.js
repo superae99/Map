@@ -1046,6 +1046,13 @@ class SalespersonEditManager {
             const newSalesperson = this.getSelectedSalesperson();
             const editReason = document.getElementById('editReason').value;
             const editNote = document.getElementById('editNote').value.trim();
+            
+            console.log('수정 요청 데이터:', {
+                newSalesNumber,
+                newSalesperson,
+                editReason,
+                editNote
+            });
 
             if (!newSalesNumber && !newSalesperson) {
                 notificationManager.warning('수정할 정보를 입력해주세요.');
@@ -1085,19 +1092,24 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                 user: 'current_user'
             };
 
+            // API 요청 데이터 준비
+            const requestData = {
+                storeId: storeCode,
+                newSalesNumber: newSalesNumber || this.currentEditingItem['담당 사번'],
+                newSalesperson: newSalesperson || this.currentEditingItem['담당 영업사원'],
+                editReason: editReason,
+                editNote: editNote
+            };
+            
+            console.log('API 요청 데이터:', requestData);
+            
             // API 호출하여 서버에 저장
             const response = await fetch('/api/update-salesperson', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    storeId: storeCode,
-                    newSalesNumber: newSalesNumber || this.currentEditingItem['담당 사번'],
-                    newSalesperson: newSalesperson || this.currentEditingItem['담당 영업사원'],
-                    editReason: editReason,
-                    editNote: editNote
-                })
+                body: JSON.stringify(requestData)
             });
 
             const result = await response.json();
@@ -1225,7 +1237,7 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
         // 현재 필터 상태 저장
         const currentBranch = document.getElementById('branchFilter')?.value;
         const currentOffice = document.getElementById('officeFilter')?.value;
-        const currentSalesperson = document.getElementById('salespersonFilter')?.value;
+        const currentSelectedSalespeople = [...selectedSalespeople]; // 배열 복사
         
         // 필터를 다시 적용하여 편집된 데이터가 반영되도록 함
         applyFilters();
@@ -1235,7 +1247,24 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
         // 필터 상태 복원
         if (currentBranch) document.getElementById('branchFilter').value = currentBranch;
         if (currentOffice) document.getElementById('officeFilter').value = currentOffice;
-        if (currentSalesperson) document.getElementById('salespersonFilter').value = currentSalesperson;
+        
+        // 담당자 멀티셀렉트 상태 복원
+        if (currentSelectedSalespeople.length > 0) {
+            selectedSalespeople.length = 0;
+            selectedSalespeople.push(...currentSelectedSalespeople);
+            
+            // DOM 업데이트 후 체크박스 상태 복원
+            setTimeout(() => {
+                const checkboxes = document.querySelectorAll('#salesPersonDropdown input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    if (selectedSalespeople.includes(checkbox.value)) {
+                        checkbox.checked = true;
+                    }
+                });
+                updateSalesPersonDropdownText();
+                applyFilters(); // 필터 다시 적용
+            }, 100);
+        }
     }
 
     resetForm() {
@@ -1974,13 +2003,8 @@ async function loadAddressData() {
         try {
             const response = await fetch('/api/data');
             if (response.ok) {
-                const result = await response.json();
-                if (result.success && result.data) {
-                    appData.addressData = result.data;
-                    console.log('API에서 최신 데이터 로드 성공');
-                } else {
-                    throw new Error('API 응답이 유효하지 않음');
-                }
+                appData.addressData = await response.json();
+                console.log('API에서 최신 데이터 로드 성공:', appData.addressData.length, '개 항목');
             } else {
                 throw new Error(`API 응답 오류: ${response.status}`);
             }
@@ -2237,7 +2261,7 @@ function populateSelect(selectElement, options, placeholder) {
     }
 }
 
-function initializeSalesPersonDropdown(salespeople) {
+function initializeSalesPersonDropdown(salespeople, preserveSelection = false) {
     if (!elements.salesPersonDropdown) {
         console.warn('담당자 드롭다운 요소를 찾을 수 없습니다.');
         return;
@@ -2250,11 +2274,16 @@ function initializeSalesPersonDropdown(salespeople) {
     }
     
     try {
+        // 현재 선택 상태 저장
+        const currentSelection = preserveSelection ? [...selectedSalespeople] : [];
+        
         dropdownContent.innerHTML = '';
         
-        // 초기화 시 선택된 담당자 배열 강제 비우기
-        selectedSalespeople.length = 0;
-        console.log('initializeSalesPersonDropdown: selectedSalespeople 배열 초기화됨');
+        // preserveSelection이 false일 때만 초기화
+        if (!preserveSelection) {
+            selectedSalespeople.length = 0;
+            console.log('initializeSalesPersonDropdown: selectedSalespeople 배열 초기화됨');
+        }
         
         const validSalespeople = salespeople.filter(sp => normalizeValue(sp) !== '');
         
@@ -2274,10 +2303,12 @@ function initializeSalesPersonDropdown(salespeople) {
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = salesperson;
-            checkbox.checked = false;  // 명시적으로 체크되지 않은 상태로 설정
+            checkbox.checked = preserveSelection ? currentSelection.includes(salesperson) : false;
             checkbox.autocomplete = 'off';  // 브라우저 자동완성 방지
             checkbox.setAttribute('autocomplete', 'off');
-            checkbox.removeAttribute('checked');  // HTML 속성도 제거
+            if (!preserveSelection) {
+                checkbox.removeAttribute('checked');  // HTML 속성도 제거
+            }
             checkbox.style.cssText = 'margin: 0; accent-color: #667eea;';
             
             const span = document.createElement('span');
@@ -2450,7 +2481,7 @@ function updateSalespeopleOptions() {
             console.log(`유지된 선택 담당자: ${selectedSalespeople.length}명`);
         }
         
-        initializeSalesPersonDropdown(salespeople);
+        initializeSalesPersonDropdown(salespeople, true); // preserveSelection = true
         
         // 담당자 수정 모달이 열려있다면 드롭다운도 함께 업데이트
         if (salespersonEditManager) {
@@ -2984,7 +3015,7 @@ function getAccessibleSalespersonColor(salesperson) {
     const contrastRatio = calculateContrastRatio(hexColor, '#ffffff');
     
     if (contrastRatio < 4.5) {
-        const adjustedColor = baseColor.replace(/(\d+)%\)$/, (match, lightness) => {
+        const adjustedColor = baseColor.replace(/(\d+)%\)$/, (_, lightness) => {
             const newLightness = Math.max(30, parseInt(lightness) - 20);
             return `${newLightness}%)`;
         });
