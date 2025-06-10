@@ -4,9 +4,9 @@
   "description": "영업 담당 상권 조회 시스템 - Express.js 서버",
   "main": "server.js",
   "scripts": {
-    "start": "node --max-old-space-size=1024 server.js",
-    "dev": "nodemon server.js",
-    "build": "echo 'No build required'",
+    "start": "echo 'This project runs on Netlify Functions'",
+    "build": "echo 'Build complete'",
+    "dev": "netlify dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
