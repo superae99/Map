@@ -1053,6 +1053,13 @@ class SalespersonEditManager {
                 editReason,
                 editNote
             });
+            
+            // 선택된 담당자 정보 상세 로그
+            console.log('현재 편집 중인 아이템:', this.currentEditingItem);
+            console.log('기존 담당자 정보:', {
+                기존사번: this.currentEditingItem['담당 사번'],
+                기존담당자: this.currentEditingItem['담당 영업사원']
+            });
 
             if (!newSalesNumber && !newSalesperson) {
                 notificationManager.warning('수정할 정보를 입력해주세요.');
@@ -1092,11 +1099,11 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
                 user: 'current_user'
             };
 
-            // API 요청 데이터 준비
+            // API 요청 데이터 준비 - 빈 문자열도 전달
             const requestData = {
                 storeId: storeCode,
-                newSalesNumber: newSalesNumber || this.currentEditingItem['담당 사번'],
-                newSalesperson: newSalesperson || this.currentEditingItem['담당 영업사원'],
+                newSalesNumber: newSalesNumber !== '' ? newSalesNumber : null,
+                newSalesperson: newSalesperson !== '' ? newSalesperson : null,
                 editReason: editReason,
                 editNote: editNote
             };
@@ -1676,24 +1683,38 @@ ${newSalesNumber ? `담당 사번: ${this.currentEditingItem['담당 사번']} �
     // 선택된 담당자 가져오기 (새로운 composite 값 형식 지원)
     getSelectedSalesperson() {
         const dropdown = document.getElementById('newSalespersonDropdown');
-        if (!dropdown) return '';
+        if (!dropdown) {
+            console.warn('newSalespersonDropdown 요소를 찾을 수 없습니다');
+            return '';
+        }
 
         const selectedRadio = dropdown.querySelector('input[type="radio"]:checked');
-        if (!selectedRadio) return '';
+        if (!selectedRadio) {
+            console.warn('선택된 라디오 버튼이 없습니다');
+            return '';
+        }
+
+        console.log('선택된 라디오 버튼:', selectedRadio);
+        console.log('라디오 버튼 dataset:', selectedRadio.dataset);
+        console.log('라디오 버튼 value:', selectedRadio.value);
 
         // dataset에서 직접 가져오기 (더 안전함)
         const datasetName = selectedRadio.dataset.salesperson;
         if (datasetName) {
+            console.log('dataset에서 담당자명 추출:', datasetName);
             return datasetName;
         }
         
         // composite 값에서 파싱하기 (fallback)
         const compositeValue = selectedRadio.value;
         if (compositeValue.includes('|')) {
-            return compositeValue.split('|')[0];
+            const salesperson = compositeValue.split('|')[0];
+            console.log('composite 값에서 담당자명 추출:', salesperson);
+            return salesperson;
         }
         
         // 최종 fallback
+        console.log('최종 fallback 값:', compositeValue);
         return compositeValue;
     }
 }

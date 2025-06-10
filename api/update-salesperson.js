@@ -104,11 +104,11 @@ module.exports = async (req, res) => {
         const originalItem = { ...jsonData[itemIndex] };
         
         // 데이터 수정
-        if (newSalesNumber) {
+        if (newSalesNumber !== null && newSalesNumber !== undefined && newSalesNumber !== '') {
             jsonData[itemIndex]['담당 사번'] = parseInt(newSalesNumber);
             console.log('사번 수정:', originalItem['담당 사번'], '→', newSalesNumber);
         }
-        if (newSalesperson) {
+        if (newSalesperson !== null && newSalesperson !== undefined && newSalesperson !== '') {
             jsonData[itemIndex]['담당 영업사원'] = newSalesperson;
             console.log('담당자 수정:', originalItem['담당 영업사원'], '→', newSalesperson);
         }
