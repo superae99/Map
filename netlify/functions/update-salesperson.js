@@ -1,6 +1,7 @@
-// Netlify Function for updating salesperson data
+// Netlify Function for updating salesperson data with GitHub integration
 const fs = require('fs').promises;
 const path = require('path');
+const GitHubStorage = require('./github-storage');
 
 // 거래처 ID 생성 함수
 function generateStoreId(item) {
@@ -62,10 +63,30 @@ exports.handler = async (event, context) => {
         
         console.log('수정 요청:', { storeId, newSalesNumber, newSalesperson });
         
-        // 데이터 파일 직접 로드
-        const dataPath = path.join(__dirname, '../../public/data.json');
-        const data = await fs.readFile(dataPath, 'utf8');
-        const jsonData = JSON.parse(data);
+        // GitHub 토큰이 있으면 GitHub에서 로드, 없으면 로컬 파일 로드
+        let jsonData;
+        let useGitHub = false;
+        
+        if (process.env.GITHUB_TOKEN) {
+            try {
+                const githubStorage = new GitHubStorage();
+                const result = await githubStorage.getData();
+                jsonData = result.data;
+                useGitHub = true;
+                console.log('GitHub에서 데이터 로드 완료');
+            } catch (error) {
+                console.warn('GitHub 로드 실패, 로컬 파일 사용:', error.message);
+                useGitHub = false;
+            }
+        }
+        
+        if (!useGitHub) {
+            // 로컬 파일에서 로드
+            const dataPath = path.join(__dirname, '../../public/data.json');
+            const data = await fs.readFile(dataPath, 'utf8');
+            jsonData = JSON.parse(data);
+            console.log('로컬 파일에서 데이터 로드 완료');
+        }
         
         // 수정할 항목 찾기
         const itemIndex = jsonData.findIndex(item => 
@@ -98,10 +119,25 @@ exports.handler = async (event, context) => {
         
         jsonData[itemIndex]['최종수정일시'] = new Date().toISOString();
         
-        // 데이터 저장 (읽기 전용 모드 - 실제 저장 없음)
+        // 데이터 저장
         const commitMessage = `Update salesperson: ${originalItem.거래처명} - ${originalItem['담당 영업사원']} → ${newSalesperson || originalItem['담당 영업사원']}`;
-        console.log('변경 사항 (읽기 전용):', commitMessage);
-        const storageType = 'readonly';
+        let storageType = 'readonly';
+        let saveResult = null;
+        
+        if (useGitHub) {
+            try {
+                const githubStorage = new GitHubStorage();
+                saveResult = await githubStorage.updateData(jsonData, commitMessage);
+                storageType = 'github';
+                console.log('GitHub에 저장 완료:', saveResult.commit);
+            } catch (error) {
+                console.error('GitHub 저장 실패:', error.message);
+                storageType = 'github_error';
+                saveResult = { error: error.message };
+            }
+        } else {
+            console.log('변경 사항 (로컬 읽기 전용):', commitMessage);
+        }
         
         // 수정 기록 생성
         const editRecord = {
@@ -128,10 +164,18 @@ exports.handler = async (event, context) => {
             headers: corsHeaders,
             body: JSON.stringify({ 
                 success: true, 
-                message: '담당자 정보가 성공적으로 수정되었습니다.',
+                message: storageType === 'github' ? 
+                    '담당자 정보가 GitHub에 성공적으로 저장되었습니다.' :
+                    storageType === 'github_error' ?
+                    '담당자 정보가 수정되었지만 GitHub 저장에 실패했습니다.' :
+                    '담당자 정보가 수정되었습니다 (읽기 전용 모드).',
                 updatedItem: jsonData[itemIndex],
                 editRecord: editRecord,
-                storage: storageType
+                storage: {
+                    type: storageType,
+                    result: saveResult,
+                    githubEnabled: !!process.env.GITHUB_TOKEN
+                }
             })
         };
         

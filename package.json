@@ -8,6 +8,9 @@
     "build": "echo 'Static site - no build required'",
     "deploy": "netlify deploy --prod"
   },
+  "dependencies": {
+    "@octokit/rest": "^20.0.2"
+  },
   "keywords": [
     "sales",
     "territory",
