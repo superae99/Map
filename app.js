@@ -2115,10 +2115,33 @@ async function loadAddressData() {
             console.warn('localStorage 읽기 실패:', storageError);
         }
 
-        // 2. 정적 파일에서 직접 로드 (큰 파일이므로 API 우회)
-        console.log('주소 데이터 직접 로드 시작...');
-        appData.addressData = await loadDataWithRetry(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
-        console.log('주소 데이터 로드 완료:', appData.addressData.length, '개 항목');
+        // 2. 큰 파일은 지연 로딩으로 처리 - 기본 데이터로 시작
+        console.log('주소 데이터 지연 로딩 모드 - 기본 영업 데이터를 사용합니다');
+        
+        // 영업 데이터가 있으면 그것을 주소 데이터로 활용
+        if (appData.salesData && appData.salesData.length > 0) {
+            appData.addressData = appData.salesData.filter(item => 
+                item && item['위도'] && item['경도'] && 
+                !isNaN(parseFloat(item['위도'])) && !isNaN(parseFloat(item['경도']))
+            );
+            console.log('영업 데이터에서 위치 정보가 있는 항목만 추출:', appData.addressData.length, '개 항목');
+            
+            // 백그라운드에서 전체 주소 데이터 로드 시작
+            setTimeout(() => {
+                loadFullAddressDataInBackground();
+            }, 2000); // 2초 후 백그라운드 로딩 시작
+            
+            return;
+        }
+        
+        // 영업 데이터가 없으면 최소한의 주소 데이터만 로드
+        console.log('최소 주소 데이터 로드 시작...');
+        appData.addressData = [];
+        
+        // 백그라운드 로딩 시작
+        setTimeout(() => {
+            loadFullAddressDataInBackground();
+        }, 1000);
         
         // 데이터 로드 완료 후 validation 수행
         const schema = {
@@ -2145,6 +2168,80 @@ async function loadAddressData() {
     } catch (error) {
         console.error('거래처 주소 데이터 로드 오류:', error);
         throw error;
+    }
+}
+
+// 백그라운드에서 전체 주소 데이터 로드
+async function loadFullAddressDataInBackground() {
+    try {
+        console.log('🔄 백그라운드에서 전체 주소 데이터 로드 시작...');
+        
+        // 사용자에게 백그라운드 로딩 알림
+        if (typeof notificationManager !== 'undefined') {
+            notificationManager.info('전체 주소 데이터를 백그라운드에서 로드하고 있습니다...', 3000);
+        }
+        
+        // 청크 단위로 데이터 로드 (스트리밍 방식)
+        const response = await fetch(APP_CONFIG.DATA_PATHS.ADDRESS_DATA);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // 스트림 리더 사용하여 점진적 로딩
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let chunks = '';
+        let totalSize = 0;
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            chunks += decoder.decode(value, { stream: true });
+            totalSize += value.length;
+            
+            // 진행 상황 표시 (5MB마다)
+            if (totalSize % (5 * 1024 * 1024) < 8192) {
+                console.log(`📦 로드 진행: ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
+            }
+        }
+        
+        // JSON 파싱
+        console.log('🔄 JSON 파싱 시작...');
+        const fullAddressData = JSON.parse(chunks);
+        
+        // 기존 데이터와 병합
+        if (fullAddressData && Array.isArray(fullAddressData)) {
+            appData.addressData = fullAddressData;
+            console.log(`✅ 전체 주소 데이터 로드 완료: ${fullAddressData.length}개 항목`);
+            
+            // localStorage에 저장
+            try {
+                localStorage.setItem('modifiedAddressData', JSON.stringify(fullAddressData));
+                console.log('💾 전체 주소 데이터 localStorage에 저장 완료');
+            } catch (storageError) {
+                console.warn('localStorage 저장 실패:', storageError);
+            }
+            
+            // 지도 업데이트
+            if (typeof updateMap === 'function') {
+                updateMap();
+            }
+            
+            // 사용자 알림
+            if (typeof notificationManager !== 'undefined') {
+                notificationManager.success(`전체 주소 데이터 로드 완료 (${fullAddressData.length}개 항목)`, 3000);
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ 백그라운드 주소 데이터 로드 실패:', error);
+        
+        if (typeof notificationManager !== 'undefined') {
+            notificationManager.warning('전체 주소 데이터 로드에 실패했습니다. 기본 데이터로 계속 진행합니다.', 5000);
+        }
     }
 }
 
