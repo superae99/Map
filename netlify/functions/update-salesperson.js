@@ -22,7 +22,8 @@ function generateStoreId(item) {
     return `STORE_${Math.abs(hash)}`;
 }
 
-module.exports = async (req, res) => {
+exports.handler = async (event, context) => {
+    const { httpMethod: method, headers, body, queryStringParameters } = event;
     // CORS 미들웨어 실행
     await runMiddleware(req, res, corsMiddleware);
     

@@ -2,26 +2,49 @@
 const DataLoader = require('./data-loader');
 const { setBasicCors } = require('./cors-handler');
 
-module.exports = async (req, res) => {
-    setBasicCors(res);
+exports.handler = async (event, context) => {
+    const { httpMethod: method, headers, body, queryStringParameters } = event;
     
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+    // CORS headers
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+    };
+    
+    if (method === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: ''
+        };
     }
     
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+    if (method !== 'GET') {
+        return {
+            statusCode: 405,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: 'Method not allowed' })
+        };
     }
     
     try {
         const { data: jsonData } = await DataLoader.loadData();
-        res.status(200).json(jsonData);
+        return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify(jsonData)
+        };
     } catch (error) {
         console.error('Error reading data:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: '데이터를 불러올 수 없습니다.',
-            details: error.message
-        });
+        return {
+            statusCode: 500,
+            headers: corsHeaders,
+            body: JSON.stringify({
+                success: false,
+                error: '데이터를 불러올 수 없습니다.',
+                details: error.message
+            })
+        };
     }
 };
