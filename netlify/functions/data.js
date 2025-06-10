@@ -1,5 +1,10 @@
-// Simple test endpoint
+// Get store data endpoint
+const fs = require('fs').promises;
+const path = require('path');
+
 exports.handler = async (event, context) => {
+    const { httpMethod: method, headers, body, queryStringParameters } = event;
+    
     // CORS headers
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
@@ -7,7 +12,7 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
     };
     
-    if (event.httpMethod === 'OPTIONS') {
+    if (method === 'OPTIONS') {
         return {
             statusCode: 200,
             headers: corsHeaders,
@@ -15,7 +20,7 @@ exports.handler = async (event, context) => {
         };
     }
     
-    if (event.httpMethod !== 'GET') {
+    if (method !== 'GET') {
         return {
             statusCode: 405,
             headers: corsHeaders,
@@ -24,18 +29,12 @@ exports.handler = async (event, context) => {
     }
     
     try {
-        // 테스트용 더미 데이터 반환
-        const testData = [
-            {
-                "거래처명": "테스트 거래처",
-                "담당 영업사원": "테스트 담당자",
-                "담당 사번": 12345,
-                "기본주소(사업자기준)": "서울특별시 강남구",
-                "RTM채널": "업소",
-                "위도": 37.5665,
-                "경도": 126.9780
-            }
-        ];
+        // Functions 폴더 내 실제 데이터 파일 로드
+        const dataPath = path.join(__dirname, 'output_address.json');
+        const data = await fs.readFile(dataPath, 'utf8');
+        const jsonData = JSON.parse(data);
+        
+        console.log(`실제 데이터 로드 완료: ${jsonData.length}개 항목`);
         
         return {
             statusCode: 200,
@@ -43,15 +42,17 @@ exports.handler = async (event, context) => {
                 ...corsHeaders,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(testData)
+            body: JSON.stringify(jsonData)
         };
     } catch (error) {
+        console.error('데이터 로드 오류:', error);
+        
         return {
             statusCode: 500,
             headers: corsHeaders,
             body: JSON.stringify({
                 success: false,
-                error: 'Server error',
+                error: '데이터를 불러올 수 없습니다.',
                 details: error.message
             })
         };
